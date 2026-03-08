@@ -1,138 +1,162 @@
 # drs — Developer CLI for Dremio Cloud
 
-A command-line tool for working with Dremio Cloud. Run SQL queries, browse the catalog, inspect table schemas, manage reflections, monitor jobs, and audit access — from your terminal or any automation pipeline.
+A unified CLI + MCP server + Claude Code plugin for Dremio Cloud. Query data, browse catalogs, inspect schemas, manage reflections, monitor jobs, and audit access — all from the terminal or your AI agent.
 
-Built for developers who want to script against Dremio without clicking through a UI, and for AI agents that need structured access to Dremio metadata and query execution.
+> **Scope:** Dremio Cloud only. Dremio Software has different auth and API behavior — not supported in this version.
 
-> **Dremio Cloud only.** Dremio Software (self-hosted) has different auth and API behavior and is not supported in this version.
+## Architecture
 
-## Status
-
-This project is in active development on the [`draft/drs-spike`](https://github.com/dremio/cli/tree/draft/drs-spike) branch. See [PR #1](https://github.com/dremio/cli/pull/1) for the full implementation.
-
-## Why this exists
-
-Dremio Cloud has a powerful REST API and rich system tables, but no official CLI. That means:
-
-- Debugging a slow query requires navigating the UI to find the job, then manually inspecting the profile
-- Scripting catalog operations means hand-rolling `curl` commands with auth headers
-- AI agents (Claude, GPT, etc.) need structured tool interfaces, not raw HTTP
-
-`drs` wraps all of this into a single binary with consistent output formats, input validation, and structured error handling.
-
-## What it does
-
-21 commands across 6 groups:
-
-| Group | Commands | What it does |
-|-------|----------|--------------|
-| `drs query` | `run`, `status`, `cancel` | Execute SQL, check job status, cancel running jobs |
-| `drs catalog` | `list`, `get`, `search` | Browse sources/spaces, get entity metadata, full-text search |
-| `drs schema` | `describe`, `lineage`, `wiki`, `sample` | Column types, upstream/downstream deps, wiki docs, preview rows |
-| `drs reflect` | `list`, `status`, `refresh`, `drop` | List reflections on a dataset, check freshness, trigger refresh |
-| `drs jobs` | `list`, `get`, `profile` | Recent jobs with filters, job details, operator-level profiles |
-| `drs access` | `grants`, `roles`, `whoami`, `audit` | ACLs on entities, org roles, user permission audit |
-
-Plus a Claude Code plugin with 8 workflow skills (slow query diagnosis, access audit, data quality checks, source onboarding, and more).
-
-## Quick look
-
-```bash
-# Run a query
-drs query run "SELECT * FROM myspace.orders LIMIT 5" --output pretty
-
-# Search the catalog
-drs catalog search "revenue"
-
-# Describe a table
-drs schema describe myspace.analytics.monthly_revenue
-
-# Check reflections on a dataset
-drs reflect list myspace.orders
-
-# Find failed jobs
-drs jobs list --status FAILED
-
-# Audit a user's permissions
-drs access audit rahim.bhojani
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
+│  drs CLI     │────▶│              │────▶│ Dremio Cloud API │
+│  (typer)     │     │  client.py   │     │ (REST + SQL)     │
+├─────────────┤     │  (httpx)     │     └─────────────────┘
+│  drs mcp     │────▶│              │
+│  (FastMCP)   │     └──────────────┘
+└─────────────┘
 ```
 
-All commands output JSON by default (for piping to `jq` or agent consumption), with `--output csv` and `--output pretty` also available.
+Commands talk to `client.py` (the single HTTP layer). Some operations use the REST API directly (catalog, reflections, access), others use SQL via system tables (jobs, reflection listing by dataset). The MCP server is a thin transport wrapper over the same command functions — zero duplicated logic.
 
-## Prerequisites
+## Quickstart
 
-- **Python 3.11+**
-- **A Dremio Cloud account** with a project
-- **A Personal Access Token (PAT)** — generate from Dremio Cloud > Account Settings > Personal Access Tokens
-
-## Getting started
+### Install
 
 ```bash
-# Clone and install
-git clone https://github.com/dremio/cli.git
-cd cli
-git checkout draft/drs-spike
+# From source
 uv tool install .
 
-# Configure
-mkdir -p ~/.config/dremioai
-cat > ~/.config/dremioai/config.yaml << 'EOF'
-pat: dremio_pat_xxxxxxxxxxxxx
-project_id: your-project-id
-EOF
-chmod 600 ~/.config/dremioai/config.yaml
-
-# Verify
-drs query run "SELECT 1 AS hello"
+# Or with pip
+pip install .
 ```
 
-Or use environment variables instead of a config file:
+### Configure
+
+Create `~/.config/dremioai/config.yaml`:
+
+```yaml
+pat: dremio_pat_xxxxxxxxxxxxx
+project_id: your-project-id
+# uri: https://api.dremio.cloud  # default, change for EU region
+```
+
+Or use environment variables:
 
 ```bash
 export DREMIO_PAT=dremio_pat_xxxxxxxxxxxxx
 export DREMIO_PROJECT_ID=your-project-id
 ```
 
-## How it works
+### First command
 
-```
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
-│  drs CLI     │────▶│  client.py   │────▶│ Dremio Cloud API │
-│  (typer)     │     │  (httpx)     │     │ (REST + SQL)     │
-└─────────────┘     └──────────────┘     └─────────────────┘
+```bash
+drs query run "SELECT 1 AS hello"
 ```
 
-- **One HTTP layer** — `client.py` is the only file that makes network calls
-- **REST + SQL hybrid** — some operations use REST (catalog, reflections), others query system tables via SQL (jobs, reflection listing by dataset). The user doesn't need to know which.
-- **Input validation** — all agent/user-provided values are validated before use (UUID format checks, SQL injection prevention, path traversal detection)
+## Commands
 
-## For AI agents
+| Group | Commands | Description |
+|-------|----------|-------------|
+| `drs query` | `run`, `status`, `cancel` | Execute SQL queries |
+| `drs catalog` | `list`, `get`, `search` | Browse and search the catalog |
+| `drs schema` | `describe`, `lineage`, `wiki`, `sample` | Inspect table schemas and data |
+| `drs reflect` | `list`, `status`, `refresh`, `drop` | Manage reflections |
+| `drs jobs` | `list`, `get`, `profile` | Monitor query jobs |
+| `drs access` | `grants`, `roles`, `whoami`, `audit` | Audit permissions |
 
-`drs` is designed to be agent-friendly:
+### Output formats
 
-- **JSON output by default** — structured, no parsing needed
-- **`drs describe <command>`** — agents can discover parameter schemas at runtime
-- **`--fields` filtering** — reduce output to specific fields to fit context windows
-- **Consistent error format** — API errors return `{"error": "...", "status_code": N}`
+All commands support `--output json` (default), `--output csv`, or `--output pretty`:
 
-Import directly for programmatic use:
-
-```python
-from drs.auth import load_config
-from drs.client import DremioClient
-from drs.commands.query import run_query
-
-config = load_config()
-client = DremioClient(config)
-result = await run_query(client, "SELECT * FROM myspace.orders LIMIT 10")
+```bash
+drs jobs list --status FAILED --output pretty
+drs schema describe myspace.mytable --output csv
 ```
 
-## Related projects
+## MCP Server (AI Agent Integration)
+
+Start the MCP stdio server:
+
+```bash
+drs mcp
+```
+
+Optionally filter which tool groups are exposed:
+
+```bash
+drs mcp --services query,schema
+```
+
+### Claude Desktop configuration
+
+Add to your Claude Desktop config (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "Dremio": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/drs", "drs", "mcp"]
+    }
+  }
+}
+```
+
+### Available MCP tools (19)
+
+| Tool | Description |
+|------|-------------|
+| `dremio_query_run` | Execute SQL query, return rows as JSON |
+| `dremio_query_status` | Check job status by ID |
+| `dremio_query_cancel` | Cancel a running job |
+| `dremio_catalog_list` | List top-level sources, spaces, home |
+| `dremio_catalog_search` | Full-text search for tables, views, sources |
+| `dremio_catalog_get` | Get metadata by dot-separated path |
+| `dremio_schema_describe` | Column names, types, nullability |
+| `dremio_schema_lineage` | Upstream/downstream dependency graph |
+| `dremio_schema_wiki` | Wiki descriptions and tags |
+| `dremio_schema_sample` | Preview sample rows (default 10) |
+| `dremio_reflect_list` | List reflections on a dataset |
+| `dremio_reflect_status` | Reflection freshness and refresh timing |
+| `dremio_reflect_refresh` | Trigger reflection refresh |
+| `dremio_reflect_drop` | Delete a reflection |
+| `dremio_jobs_list` | Recent jobs, filterable by status |
+| `dremio_jobs_get` | Detailed job metadata |
+| `dremio_jobs_profile` | Operator-level execution profile |
+| `dremio_access_grants` | ACL grants on a catalog entity |
+| `dremio_access_roles` | List all org roles |
+| `dremio_access_whoami` | Current authenticated user info |
+| `dremio_access_audit` | Audit a user's roles and permissions |
+
+## Claude Code Plugin
+
+Install as a Claude Code plugin for Dremio-aware skills:
+
+```
+/plugin marketplace add dremio/cli
+/plugin install dremio@dremio-cli
+```
+
+### Skills (8)
+
+| Skill | Description |
+|-------|-------------|
+| `dremio` | Core Dremio Cloud SQL reference, system tables, REST patterns |
+| `dremio-setup` | Setup wizard for drs CLI + MCP server |
+| `dremio-dbt` | dbt-dremio integration guide (Cloud) |
+| `investigate-slow-query` | Diagnose slow queries via job profiles and reflections |
+| `audit-dataset-access` | Trace grants and role inheritance |
+| `document-dataset` | Generate dataset documentation cards |
+| `investigate-data-quality` | Data quality checks: nulls, duplicates, anomalies |
+| `onboard-new-source` | Catalog, describe, reflect, verify access |
+
+## Relationship to existing repos
 
 | Repo | Relationship |
 |------|-------------|
-| `dremio/dremio-mcp` | Sibling — MCP server for AI agent integration. Config format is shared. |
-| `dremio/claude-plugins` | Predecessor — skills rewritten to use `drs` commands. |
+| `dremio/dremio-mcp` | **Predecessor.** `drs mcp` supersedes it with a CLI layer underneath. Config format preserved. |
+| `dremio/claude-plugins` | **Absorbed.** Skills rewritten to use `drs` commands instead of raw curl. |
+| `developer-advocacy-dremio/dremio-agent-skill` | **Referenced.** Wizard patterns informed skill design. |
 
 ## License
 

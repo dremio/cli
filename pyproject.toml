@@ -1,0 +1,30 @@
+[project]
+name = "drs"
+version = "0.1.0"
+description = "Developer CLI for Dremio — query, catalog, schema, reflections, jobs, and access management"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = [
+    "typer[all]>=0.9",
+    "httpx>=0.27",
+    "pyyaml>=6",
+    "pydantic>=2",
+    "mcp[cli]>=1.0",
+]
+
+[project.scripts]
+drs = "drs.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drs"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+]

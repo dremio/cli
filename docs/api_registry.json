@@ -1,0 +1,773 @@
+{
+  "source": "dremio/js-sdk",
+  "generated_by": "scripts/parse_jssdk.py",
+  "url_patterns": {
+    "sonarV2Request": "/ui/projects/{projectId}/{path}",
+    "sonarV3Request": "/v0/projects/{projectId}/{path}",
+    "sonarV4Request": "/v1/projects/{projectId}/{path}",
+    "v2Request": "/ui/{path}",
+    "v3Request": "/v0/{path}",
+    "v4Request": "/v1/{path}"
+  },
+  "total_endpoints": 79,
+  "resources": {
+    "ai": {
+      "endpoint_count": 18,
+      "skus": [
+        "cloud",
+        "enterprise"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "url": "/v1/model-provider/config",
+          "path": "model-provider/config",
+          "request_fn": "v4Request",
+          "sdk_method": "encode",
+          "file": "src/cloud/ai/AIResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v1/model-provider/config",
+          "path": "model-provider/config",
+          "request_fn": "v4Request",
+          "sdk_method": "getPage",
+          "file": "src/cloud/ai/AIResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v1/model-provider/config/{id}",
+          "path": "model-provider/config/{id}",
+          "request_fn": "v4Request",
+          "sdk_method": "retrieveModelProvider",
+          "file": "src/cloud/ai/AIResource.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v1/model-provider:setDefault",
+          "path": "model-provider:setDefault",
+          "request_fn": "v4Request",
+          "sdk_method": "setDefault",
+          "file": "src/cloud/ai/DremioModelProvider.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v1/model-provider:listModels",
+          "path": "model-provider:listModels",
+          "request_fn": "v4Request",
+          "sdk_method": "listAvailableModels",
+          "file": "src/enterprise/ai/AIResource.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v1/projects/{projectId}/agent",
+          "path": "agent",
+          "request_fn": "sonarV4Request",
+          "sdk_method": "fromTextEventStream",
+          "file": "src/enterprise/ai/chat/methods/sendChatMessage.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v1/projects/{projectId}/agent/conversations",
+          "path": "agent/conversations",
+          "request_fn": "sonarV4Request",
+          "sdk_method": "createConversation",
+          "file": "src/enterprise/ai/conversations/methods/createConversation.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v1/projects/{projectId}/agent/conversations/{conversationId}/messages",
+          "path": "agent/conversations/{conversationId}/messages",
+          "request_fn": "sonarV4Request",
+          "sdk_method": "createExchangeRun",
+          "file": "src/enterprise/ai/conversations/methods/createExchangeRun.ts"
+        },
+        {
+          "method": "DELETE",
+          "url": "/v1/projects/{projectId}/agent/conversations/{id}",
+          "path": "agent/conversations/{id}",
+          "request_fn": "sonarV4Request",
+          "sdk_method": "deleteConversation",
+          "file": "src/enterprise/ai/conversations/methods/deleteConversation.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v1/projects/{projectId}/agent/conversations",
+          "path": "agent/conversations",
+          "request_fn": "sonarV4Request",
+          "sdk_method": "listConversations",
+          "file": "src/enterprise/ai/conversations/methods/listConversations.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v1/projects/{projectId}/agent/conversations/{id}",
+          "path": "agent/conversations/{id}",
+          "request_fn": "sonarV4Request",
+          "sdk_method": "retrieveConversation",
+          "file": "src/enterprise/ai/conversations/methods/retrieveConversation.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v1/projects/{projectId}/agent/conversations/{id}/messages",
+          "path": "agent/conversations/{id}/messages",
+          "request_fn": "sonarV4Request",
+          "sdk_method": "retrieveConversationHistory",
+          "file": "src/enterprise/ai/conversations/methods/retrieveConversationHistory.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v1/projects/{projectId}/agent/conversations/{conversationId}/runs/{id}:cancel",
+          "path": "agent/conversations/{conversationId}/runs/{id}:cancel",
+          "request_fn": "sonarV4Request",
+          "sdk_method": "stopExchangeRun",
+          "file": "src/enterprise/ai/conversations/methods/stopExchangeRun.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v1/projects/{projectId}/agent/conversations/{params}/runs/{params}",
+          "path": "agent/conversations/{params}/runs/{params}",
+          "request_fn": "sonarV4Request",
+          "sdk_method": "streamRunEvents",
+          "file": "src/enterprise/ai/conversations/methods/streamRunEvents.ts"
+        },
+        {
+          "method": "PATCH",
+          "url": "/v1/projects/{projectId}/agent/conversations/{id}",
+          "path": "agent/conversations/{id}",
+          "request_fn": "sonarV4Request",
+          "sdk_method": "updateConversation",
+          "file": "src/enterprise/ai/conversations/methods/updateConversation.ts"
+        },
+        {
+          "method": "DELETE",
+          "url": "/v1/model-provider/config/{this}",
+          "path": "model-provider/config/{this}",
+          "request_fn": "v4Request",
+          "sdk_method": "delete",
+          "file": "src/enterprise/ai/modelProvider/ModelProvider.ts"
+        },
+        {
+          "method": "DELETE",
+          "url": "/v1/model-provider:setDefault",
+          "path": "model-provider:setDefault",
+          "request_fn": "v4Request",
+          "sdk_method": "setDefault",
+          "file": "src/enterprise/ai/modelProvider/ModelProvider.ts"
+        },
+        {
+          "method": "PUT",
+          "url": "/v1/model-provider/config/{this}",
+          "path": "model-provider/config/{this}",
+          "request_fn": "v4Request",
+          "sdk_method": "encode",
+          "file": "src/enterprise/ai/modelProvider/ModelProvider.ts"
+        }
+      ]
+    },
+    "arctic": {
+      "endpoint_count": 2,
+      "skus": [
+        "cloud"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/arctic/catalogs",
+          "path": "arctic/catalogs",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "l",
+          "file": "src/cloud/arctic/ArcticResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/arctic/catalogs/{id}",
+          "path": "arctic/catalogs/{id}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "retrieve",
+          "file": "src/cloud/arctic/ArcticResource.ts"
+        }
+      ]
+    },
+    "catalog": {
+      "endpoint_count": 16,
+      "skus": [
+        "cloud",
+        "enterprise",
+        "oss"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/catalog",
+          "path": "catalog",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "getRoot",
+          "file": "src/cloud/catalog/EnterpriseCatalogResource.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/projects/{projectId}/uploads/{sourceName}",
+          "path": "uploads/{sourceName}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "copyFromObjectStore",
+          "file": "src/cloud/catalog/EnterpriseCatalogResource.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/projects/{projectId}/uploads",
+          "path": "uploads",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "set",
+          "file": "src/cloud/catalog/EnterpriseCatalogResource.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/projects/{projectId}/uploads/{this}/preview",
+          "path": "uploads/{this}/preview",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "preview",
+          "file": "src/cloud/catalog/FileUpload.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/projects/{projectId}/uploads/{this}/ingest",
+          "path": "uploads/{this}/ingest",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "parse",
+          "file": "src/cloud/catalog/FileUpload.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/catalog/{catalogReference}/grants",
+          "path": "catalog/{catalogReference}/grants",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "retrieveCatalogGrants",
+          "file": "src/enterprise/catalog/CatalogReferences/retrieveCatalogGrants.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/catalog/{id}",
+          "path": "catalog/{id}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "at",
+          "file": "src/enterprise/catalog/catalogRetrieve.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/projects/{projectId}/catalog/by-ids",
+          "path": "catalog/by-ids",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "map",
+          "file": "src/enterprise/catalog/catalogRetrieve.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/catalog/by-path/${path.map(encodeURIComponent).join(",
+          "path": "catalog/by-path/${path.map(encodeURIComponent).join(",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "at",
+          "file": "src/enterprise/catalog/catalogRetrieve.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/projects/{projectId}/catalog/by-paths",
+          "path": "catalog/by-paths",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "map",
+          "file": "src/enterprise/catalog/catalogRetrieve.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/projects/{projectId}/search",
+          "path": "search",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "createCatalogSearch",
+          "file": "src/enterprise/catalog/catalogSearch/createCatalogSearch.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/catalog/by-path/${catalogReference.path.map(encodeURIComponent).join(",
+          "path": "catalog/by-path/${catalogReference.path.map(encodeURIComponent).join(",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "set",
+          "file": "src/oss/catalog/CatalogReferences/utils/catalogChildren.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/catalog/{catalogReference}/collaboration/tag",
+          "path": "catalog/{catalogReference}/collaboration/tag",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "getTags",
+          "file": "src/oss/catalog/CatalogReferences/utils/getTags.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/catalog/{catalogReference}/collaboration/wiki",
+          "path": "catalog/{catalogReference}/collaboration/wiki",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "getWiki",
+          "file": "src/oss/catalog/CatalogReferences/utils/getWiki.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/projects/{projectId}/catalog/{this}/collaboration/tag",
+          "path": "catalog/{this}/collaboration/tag",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "update",
+          "file": "src/oss/catalog/CatalogTags.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/projects/{projectId}/catalog/{this}/collaboration/wiki",
+          "path": "catalog/{this}/collaboration/wiki",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "update",
+          "file": "src/oss/catalog/CatalogWiki.ts"
+        }
+      ]
+    },
+    "clouds": {
+      "endpoint_count": 1,
+      "skus": [
+        "cloud"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "/v0/clouds",
+          "path": "clouds",
+          "request_fn": "v3Request",
+          "sdk_method": "getPage",
+          "file": "src/cloud/clouds/CloudsResource.ts"
+        }
+      ]
+    },
+    "enginerules": {
+      "endpoint_count": 1,
+      "skus": [
+        "cloud"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/rules",
+          "path": "rules",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "list",
+          "file": "src/cloud/engineRules/EngineRulesResource.ts"
+        }
+      ]
+    },
+    "engines": {
+      "endpoint_count": 5,
+      "skus": [
+        "cloud",
+        "enterprise"
+      ],
+      "endpoints": [
+        {
+          "method": "PUT",
+          "url": "/v0/projects/{projectId}/engines/{this}",
+          "path": "engines/{this}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "update",
+          "file": "src/cloud/engines/Engine.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/engines",
+          "path": "engines",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "l",
+          "file": "src/cloud/engines/EnginesResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/engines/{id}",
+          "path": "engines/{id}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "retrieve",
+          "file": "src/cloud/engines/EnginesResource.ts"
+        },
+        {
+          "method": "PUT",
+          "url": "/v0/projects/{projectId}/engines/{this}/start",
+          "path": "engines/{this}/start",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "start",
+          "file": "src/enterprise/engines/Engine.ts"
+        },
+        {
+          "method": "PUT",
+          "url": "/v0/projects/{projectId}/engines/{this}/stop",
+          "path": "engines/{this}/stop",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "stop",
+          "file": "src/enterprise/engines/Engine.ts"
+        }
+      ]
+    },
+    "grants": {
+      "endpoint_count": 1,
+      "skus": [
+        "enterprise"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/grant/{getRoleType}/{grantee}",
+          "path": "grant/{getRoleType}/{grantee}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "retrieveGrants",
+          "file": "src/enterprise/grants/createRetrieveGrants.ts"
+        }
+      ]
+    },
+    "jobs": {
+      "endpoint_count": 6,
+      "skus": [
+        "oss"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/job/{this}/results",
+          "path": "job/{this}/results",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "min",
+          "file": "src/oss/jobs/Job.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/projects/{projectId}/job/{this}/cancel",
+          "path": "job/{this}/cancel",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "cancel",
+          "file": "src/oss/jobs/Job.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/projects/{projectId}/sql",
+          "path": "sql",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "create",
+          "file": "src/oss/jobs/JobsResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/job/{id}",
+          "path": "job/{id}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "retrieve",
+          "file": "src/oss/jobs/JobsResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/ui/projects/{projectId}/jobs-listing/v1.0/${new URL(nextPage, ",
+          "path": "jobs-listing/v1.0/${new URL(nextPage, ",
+          "request_fn": "sonarV2Request",
+          "sdk_method": "createListJobs",
+          "file": "src/oss/jobs/listJobs.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/ui/projects/{projectId}/jobs-listing/v1.0/",
+          "path": "jobs-listing/v1.0/",
+          "request_fn": "sonarV2Request",
+          "sdk_method": "filter",
+          "file": "src/oss/jobs/listJobs.ts"
+        }
+      ]
+    },
+    "organizations": {
+      "endpoint_count": 2,
+      "skus": [
+        "cloud"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "url": "/ui/organizations",
+          "path": "organizations",
+          "request_fn": "v2Request",
+          "sdk_method": "update",
+          "file": "src/cloud/organizations/Organization.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/ui/organizations",
+          "path": "organizations",
+          "request_fn": "v2Request",
+          "sdk_method": "retrieveOrg",
+          "file": "src/cloud/organizations/Organization.ts"
+        }
+      ]
+    },
+    "projects": {
+      "endpoint_count": 6,
+      "skus": [
+        "cloud"
+      ],
+      "endpoints": [
+        {
+          "method": "PUT",
+          "url": "/v0/projects/{this}",
+          "path": "projects/{this}",
+          "request_fn": "v3Request",
+          "sdk_method": "Err",
+          "file": "src/cloud/projects/Project.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{this}/grants",
+          "path": "projects/{this}/grants",
+          "request_fn": "v3Request",
+          "sdk_method": "grants",
+          "file": "src/cloud/projects/Project.ts"
+        },
+        {
+          "method": "PUT",
+          "url": "/ui/projects/{id}/activate",
+          "path": "projects/{id}/activate",
+          "request_fn": "v2Request",
+          "sdk_method": "activate",
+          "file": "src/cloud/projects/ProjectsResource.ts"
+        },
+        {
+          "method": "PUT",
+          "url": "/v0/projects/{id}",
+          "path": "projects/{id}",
+          "request_fn": "v3Request",
+          "sdk_method": "delete",
+          "file": "src/cloud/projects/ProjectsResource.ts"
+        },
+        {
+          "method": "DELETE",
+          "url": "/v0/projects",
+          "path": "projects",
+          "request_fn": "v3Request",
+          "sdk_method": "l",
+          "file": "src/cloud/projects/ProjectsResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{id}",
+          "path": "projects/{id}",
+          "request_fn": "v3Request",
+          "sdk_method": "retrieve",
+          "file": "src/cloud/projects/ProjectsResource.ts"
+        }
+      ]
+    },
+    "retrieveenvironment": {
+      "endpoint_count": 1,
+      "skus": [
+        "oss"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "/v0/info",
+          "path": "info",
+          "request_fn": "v3Request",
+          "sdk_method": "retrieveEnvironment",
+          "file": "src/oss/retrieveEnvironment.ts"
+        }
+      ]
+    },
+    "roles": {
+      "endpoint_count": 5,
+      "skus": [
+        "enterprise"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "url": "/v0/role/{this}",
+          "path": "role/{this}",
+          "request_fn": "v3Request",
+          "sdk_method": "update",
+          "file": "src/enterprise/roles/Role.ts"
+        },
+        {
+          "method": "DELETE",
+          "url": "/v0/role/{this}",
+          "path": "role/{this}",
+          "request_fn": "v3Request",
+          "sdk_method": "delete",
+          "file": "src/enterprise/roles/Role.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/role",
+          "path": "role",
+          "request_fn": "v3Request",
+          "sdk_method": "getPage",
+          "file": "src/enterprise/roles/RolesResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/role/{id}",
+          "path": "role/{id}",
+          "request_fn": "v3Request",
+          "sdk_method": "retrieve",
+          "file": "src/enterprise/roles/RolesResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/role/by-name/{name}",
+          "path": "role/by-name/{name}",
+          "request_fn": "v3Request",
+          "sdk_method": "retrieveByName",
+          "file": "src/enterprise/roles/RolesResource.ts"
+        }
+      ]
+    },
+    "scripts": {
+      "endpoint_count": 3,
+      "skus": [
+        "enterprise"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/scripts/{this}/grants",
+          "path": "scripts/{this}/grants",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "grants",
+          "file": "src/enterprise/scripts/EnterpriseScript.ts"
+        },
+        {
+          "method": "DELETE",
+          "url": "/v0/projects/{projectId}/scripts/{this}",
+          "path": "scripts/{this}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "delete",
+          "file": "src/enterprise/scripts/EnterpriseScript.ts"
+        },
+        {
+          "method": "PATCH",
+          "url": "/v0/projects/{projectId}/scripts/{this}",
+          "path": "scripts/{this}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "safeParseResultToResult",
+          "file": "src/enterprise/scripts/EnterpriseScript.ts"
+        }
+      ]
+    },
+    "sql": {
+      "endpoint_count": 1,
+      "skus": [
+        "oss"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "/ui/projects/{projectId}/sql/functions",
+          "path": "sql/functions",
+          "request_fn": "sonarV2Request",
+          "sdk_method": "getPage",
+          "file": "src/oss/sql/SqlResource.ts"
+        }
+      ]
+    },
+    "users": {
+      "endpoint_count": 11,
+      "skus": [
+        "cloud",
+        "enterprise",
+        "oss"
+      ],
+      "endpoints": [
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/user/{id}",
+          "path": "user/{id}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "retrieveById",
+          "file": "src/cloud/users/CloudUsersResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/user/by-name/{email}",
+          "path": "user/by-name/{email}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "retrieveByEmail",
+          "file": "src/cloud/users/CloudUsersResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/ui/user/{id}",
+          "path": "user/{id}",
+          "request_fn": "v2Request",
+          "sdk_method": "_retrieveById",
+          "file": "src/cloud/users/UsersResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/ui/user/by-name/{username}",
+          "path": "user/by-name/{username}",
+          "request_fn": "v2Request",
+          "sdk_method": "_retrieveByUsername",
+          "file": "src/cloud/users/UsersResource.ts"
+        },
+        {
+          "method": "POST",
+          "url": "/v0/user/{this}",
+          "path": "user/{this}",
+          "request_fn": "v3Request",
+          "sdk_method": "save",
+          "file": "src/enterprise/users/EnterpriseUser.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/user/{this}/token",
+          "path": "user/{this}/token",
+          "request_fn": "v3Request",
+          "sdk_method": "tokens",
+          "file": "src/enterprise/users/EnterpriseUser.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/user",
+          "path": "user",
+          "request_fn": "v3Request",
+          "sdk_method": "getPage",
+          "file": "src/enterprise/users/EnterpriseUsersResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/projects/{projectId}/user/by-name/{name}",
+          "path": "user/by-name/{name}",
+          "request_fn": "sonarV3Request",
+          "sdk_method": "retrieveByName",
+          "file": "src/enterprise/users/EnterpriseUsersResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/user/{this}/oauth/credentials",
+          "path": "user/{this}/oauth/credentials",
+          "request_fn": "v3Request",
+          "sdk_method": "listOauthCredentials",
+          "file": "src/enterprise/users/ServiceUser.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/user/{id}",
+          "path": "user/{id}",
+          "request_fn": "v3Request",
+          "sdk_method": "retrieveById",
+          "file": "src/oss/users/UsersResource.ts"
+        },
+        {
+          "method": "GET",
+          "url": "/v0/user/by-name/{name}",
+          "path": "user/by-name/{name}",
+          "request_fn": "v3Request",
+          "sdk_method": "retrieveByName",
+          "file": "src/oss/users/UsersResource.ts"
+        }
+      ]
+    }
+  }
+}

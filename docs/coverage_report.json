@@ -1,0 +1,573 @@
+{
+  "summary": {
+    "sdk_total": 79,
+    "drs_covered": 14,
+    "sdk_uncovered_by_drs": 65,
+    "drs_only": 5
+  },
+  "covered": [
+    {
+      "sdk_endpoint": "GET /v0/projects/{projectId}/catalog",
+      "drs_method": "get_catalog_entity (root)",
+      "resource": "catalog",
+      "sku": "cloud"
+    },
+    {
+      "sdk_endpoint": "GET /v0/projects/{projectId}/catalog/{catalogReference}/collaboration/tag",
+      "drs_method": "get_tags",
+      "resource": "catalog",
+      "sku": "oss"
+    },
+    {
+      "sdk_endpoint": "GET /v0/projects/{projectId}/catalog/{catalogReference}/collaboration/wiki",
+      "drs_method": "get_wiki",
+      "resource": "catalog",
+      "sku": "oss"
+    },
+    {
+      "sdk_endpoint": "GET /v0/projects/{projectId}/catalog/{id}",
+      "drs_method": "get_catalog_entity",
+      "resource": "catalog",
+      "sku": "enterprise"
+    },
+    {
+      "sdk_endpoint": "GET /v0/projects/{projectId}/job/{id}",
+      "drs_method": "get_job_status",
+      "resource": "jobs",
+      "sku": "oss"
+    },
+    {
+      "sdk_endpoint": "GET /v0/projects/{projectId}/job/{this}/results",
+      "drs_method": "get_job_results",
+      "resource": "jobs",
+      "sku": "oss"
+    },
+    {
+      "sdk_endpoint": "GET /v0/projects/{projectId}/user/by-name/{email}",
+      "drs_method": "get_user_by_name",
+      "resource": "users",
+      "sku": "cloud"
+    },
+    {
+      "sdk_endpoint": "GET /v0/projects/{projectId}/user/by-name/{name}",
+      "drs_method": "get_user_by_name",
+      "resource": "users",
+      "sku": "enterprise"
+    },
+    {
+      "sdk_endpoint": "GET /v0/projects/{projectId}/user/{id}",
+      "drs_method": "list_users / get_user_by_name",
+      "resource": "users",
+      "sku": "cloud"
+    },
+    {
+      "sdk_endpoint": "GET /v0/role",
+      "drs_method": "list_roles",
+      "resource": "roles",
+      "sku": "enterprise"
+    },
+    {
+      "sdk_endpoint": "GET /v0/role/{id}",
+      "drs_method": "list_roles (detail)",
+      "resource": "roles",
+      "sku": "enterprise"
+    },
+    {
+      "sdk_endpoint": "POST /v0/projects/{projectId}/job/{this}/cancel",
+      "drs_method": "cancel_job",
+      "resource": "jobs",
+      "sku": "oss"
+    },
+    {
+      "sdk_endpoint": "POST /v0/projects/{projectId}/search",
+      "drs_method": "search",
+      "resource": "catalog",
+      "sku": "enterprise"
+    },
+    {
+      "sdk_endpoint": "POST /v0/projects/{projectId}/sql",
+      "drs_method": "submit_sql",
+      "resource": "jobs",
+      "sku": "oss"
+    }
+  ],
+  "uncovered": [
+    {
+      "endpoint": "DELETE /v0/projects",
+      "resource": "projects",
+      "sku": "cloud",
+      "file": "src/cloud/projects/ProjectsResource.ts",
+      "method": "l"
+    },
+    {
+      "endpoint": "DELETE /v0/projects/{projectId}/scripts/{this}",
+      "resource": "scripts",
+      "sku": "enterprise",
+      "file": "src/enterprise/scripts/EnterpriseScript.ts",
+      "method": "delete"
+    },
+    {
+      "endpoint": "DELETE /v0/role/{this}",
+      "resource": "roles",
+      "sku": "enterprise",
+      "file": "src/enterprise/roles/Role.ts",
+      "method": "delete"
+    },
+    {
+      "endpoint": "DELETE /v1/model-provider/config/{this}",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/modelProvider/ModelProvider.ts",
+      "method": "delete"
+    },
+    {
+      "endpoint": "DELETE /v1/model-provider:setDefault",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/modelProvider/ModelProvider.ts",
+      "method": "setDefault"
+    },
+    {
+      "endpoint": "DELETE /v1/projects/{projectId}/agent/conversations/{id}",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/conversations/methods/deleteConversation.ts",
+      "method": "deleteConversation"
+    },
+    {
+      "endpoint": "GET /ui/organizations",
+      "resource": "organizations",
+      "sku": "cloud",
+      "file": "src/cloud/organizations/Organization.ts",
+      "method": "retrieveOrg"
+    },
+    {
+      "endpoint": "GET /ui/projects/{projectId}/jobs-listing/v1.0/",
+      "resource": "jobs",
+      "sku": "oss",
+      "file": "src/oss/jobs/listJobs.ts",
+      "method": "filter"
+    },
+    {
+      "endpoint": "GET /ui/projects/{projectId}/jobs-listing/v1.0/${new URL(nextPage, ",
+      "resource": "jobs",
+      "sku": "oss",
+      "file": "src/oss/jobs/listJobs.ts",
+      "method": "createListJobs"
+    },
+    {
+      "endpoint": "GET /ui/projects/{projectId}/sql/functions",
+      "resource": "sql",
+      "sku": "oss",
+      "file": "src/oss/sql/SqlResource.ts",
+      "method": "getPage"
+    },
+    {
+      "endpoint": "GET /ui/user/by-name/{username}",
+      "resource": "users",
+      "sku": "cloud",
+      "file": "src/cloud/users/UsersResource.ts",
+      "method": "_retrieveByUsername"
+    },
+    {
+      "endpoint": "GET /ui/user/{id}",
+      "resource": "users",
+      "sku": "cloud",
+      "file": "src/cloud/users/UsersResource.ts",
+      "method": "_retrieveById"
+    },
+    {
+      "endpoint": "GET /v0/clouds",
+      "resource": "clouds",
+      "sku": "cloud",
+      "file": "src/cloud/clouds/CloudsResource.ts",
+      "method": "getPage"
+    },
+    {
+      "endpoint": "GET /v0/info",
+      "resource": "retrieveenvironment",
+      "sku": "oss",
+      "file": "src/oss/retrieveEnvironment.ts",
+      "method": "retrieveEnvironment"
+    },
+    {
+      "endpoint": "GET /v0/projects/{id}",
+      "resource": "projects",
+      "sku": "cloud",
+      "file": "src/cloud/projects/ProjectsResource.ts",
+      "method": "retrieve"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/arctic/catalogs",
+      "resource": "arctic",
+      "sku": "cloud",
+      "file": "src/cloud/arctic/ArcticResource.ts",
+      "method": "l"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/arctic/catalogs/{id}",
+      "resource": "arctic",
+      "sku": "cloud",
+      "file": "src/cloud/arctic/ArcticResource.ts",
+      "method": "retrieve"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/catalog/by-path/${catalogReference.path.map(encodeURIComponent).join(",
+      "resource": "catalog",
+      "sku": "oss",
+      "file": "src/oss/catalog/CatalogReferences/utils/catalogChildren.ts",
+      "method": "set"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/catalog/by-path/${path.map(encodeURIComponent).join(",
+      "resource": "catalog",
+      "sku": "enterprise",
+      "file": "src/enterprise/catalog/catalogRetrieve.ts",
+      "method": "at"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/catalog/{catalogReference}/grants",
+      "resource": "catalog",
+      "sku": "enterprise",
+      "file": "src/enterprise/catalog/CatalogReferences/retrieveCatalogGrants.ts",
+      "method": "retrieveCatalogGrants"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/engines",
+      "resource": "engines",
+      "sku": "cloud",
+      "file": "src/cloud/engines/EnginesResource.ts",
+      "method": "l"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/engines/{id}",
+      "resource": "engines",
+      "sku": "cloud",
+      "file": "src/cloud/engines/EnginesResource.ts",
+      "method": "retrieve"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/grant/{getRoleType}/{grantee}",
+      "resource": "grants",
+      "sku": "enterprise",
+      "file": "src/enterprise/grants/createRetrieveGrants.ts",
+      "method": "retrieveGrants"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/rules",
+      "resource": "enginerules",
+      "sku": "cloud",
+      "file": "src/cloud/engineRules/EngineRulesResource.ts",
+      "method": "list"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/scripts/{this}/grants",
+      "resource": "scripts",
+      "sku": "enterprise",
+      "file": "src/enterprise/scripts/EnterpriseScript.ts",
+      "method": "grants"
+    },
+    {
+      "endpoint": "GET /v0/projects/{this}/grants",
+      "resource": "projects",
+      "sku": "cloud",
+      "file": "src/cloud/projects/Project.ts",
+      "method": "grants"
+    },
+    {
+      "endpoint": "GET /v0/role/by-name/{name}",
+      "resource": "roles",
+      "sku": "enterprise",
+      "file": "src/enterprise/roles/RolesResource.ts",
+      "method": "retrieveByName"
+    },
+    {
+      "endpoint": "GET /v0/user",
+      "resource": "users",
+      "sku": "enterprise",
+      "file": "src/enterprise/users/EnterpriseUsersResource.ts",
+      "method": "getPage"
+    },
+    {
+      "endpoint": "GET /v0/user/by-name/{name}",
+      "resource": "users",
+      "sku": "oss",
+      "file": "src/oss/users/UsersResource.ts",
+      "method": "retrieveByName"
+    },
+    {
+      "endpoint": "GET /v0/user/{id}",
+      "resource": "users",
+      "sku": "oss",
+      "file": "src/oss/users/UsersResource.ts",
+      "method": "retrieveById"
+    },
+    {
+      "endpoint": "GET /v0/user/{this}/oauth/credentials",
+      "resource": "users",
+      "sku": "enterprise",
+      "file": "src/enterprise/users/ServiceUser.ts",
+      "method": "listOauthCredentials"
+    },
+    {
+      "endpoint": "GET /v0/user/{this}/token",
+      "resource": "users",
+      "sku": "enterprise",
+      "file": "src/enterprise/users/EnterpriseUser.ts",
+      "method": "tokens"
+    },
+    {
+      "endpoint": "GET /v1/model-provider/config",
+      "resource": "ai",
+      "sku": "cloud",
+      "file": "src/cloud/ai/AIResource.ts",
+      "method": "getPage"
+    },
+    {
+      "endpoint": "GET /v1/model-provider/config/{id}",
+      "resource": "ai",
+      "sku": "cloud",
+      "file": "src/cloud/ai/AIResource.ts",
+      "method": "retrieveModelProvider"
+    },
+    {
+      "endpoint": "GET /v1/projects/{projectId}/agent/conversations",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/conversations/methods/listConversations.ts",
+      "method": "listConversations"
+    },
+    {
+      "endpoint": "GET /v1/projects/{projectId}/agent/conversations/{id}",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/conversations/methods/retrieveConversation.ts",
+      "method": "retrieveConversation"
+    },
+    {
+      "endpoint": "GET /v1/projects/{projectId}/agent/conversations/{id}/messages",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/conversations/methods/retrieveConversationHistory.ts",
+      "method": "retrieveConversationHistory"
+    },
+    {
+      "endpoint": "GET /v1/projects/{projectId}/agent/conversations/{params}/runs/{params}",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/conversations/methods/streamRunEvents.ts",
+      "method": "streamRunEvents"
+    },
+    {
+      "endpoint": "PATCH /v0/projects/{projectId}/scripts/{this}",
+      "resource": "scripts",
+      "sku": "enterprise",
+      "file": "src/enterprise/scripts/EnterpriseScript.ts",
+      "method": "safeParseResultToResult"
+    },
+    {
+      "endpoint": "PATCH /v1/projects/{projectId}/agent/conversations/{id}",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/conversations/methods/updateConversation.ts",
+      "method": "updateConversation"
+    },
+    {
+      "endpoint": "POST /ui/organizations",
+      "resource": "organizations",
+      "sku": "cloud",
+      "file": "src/cloud/organizations/Organization.ts",
+      "method": "update"
+    },
+    {
+      "endpoint": "POST /v0/projects/{projectId}/catalog/by-ids",
+      "resource": "catalog",
+      "sku": "enterprise",
+      "file": "src/enterprise/catalog/catalogRetrieve.ts",
+      "method": "map"
+    },
+    {
+      "endpoint": "POST /v0/projects/{projectId}/catalog/by-paths",
+      "resource": "catalog",
+      "sku": "enterprise",
+      "file": "src/enterprise/catalog/catalogRetrieve.ts",
+      "method": "map"
+    },
+    {
+      "endpoint": "POST /v0/projects/{projectId}/catalog/{this}/collaboration/tag",
+      "resource": "catalog",
+      "sku": "oss",
+      "file": "src/oss/catalog/CatalogTags.ts",
+      "method": "update"
+    },
+    {
+      "endpoint": "POST /v0/projects/{projectId}/catalog/{this}/collaboration/wiki",
+      "resource": "catalog",
+      "sku": "oss",
+      "file": "src/oss/catalog/CatalogWiki.ts",
+      "method": "update"
+    },
+    {
+      "endpoint": "POST /v0/projects/{projectId}/uploads",
+      "resource": "catalog",
+      "sku": "cloud",
+      "file": "src/cloud/catalog/EnterpriseCatalogResource.ts",
+      "method": "set"
+    },
+    {
+      "endpoint": "POST /v0/projects/{projectId}/uploads/{sourceName}",
+      "resource": "catalog",
+      "sku": "cloud",
+      "file": "src/cloud/catalog/EnterpriseCatalogResource.ts",
+      "method": "copyFromObjectStore"
+    },
+    {
+      "endpoint": "POST /v0/projects/{projectId}/uploads/{this}/ingest",
+      "resource": "catalog",
+      "sku": "cloud",
+      "file": "src/cloud/catalog/FileUpload.ts",
+      "method": "parse"
+    },
+    {
+      "endpoint": "POST /v0/projects/{projectId}/uploads/{this}/preview",
+      "resource": "catalog",
+      "sku": "cloud",
+      "file": "src/cloud/catalog/FileUpload.ts",
+      "method": "preview"
+    },
+    {
+      "endpoint": "POST /v0/role/{this}",
+      "resource": "roles",
+      "sku": "enterprise",
+      "file": "src/enterprise/roles/Role.ts",
+      "method": "update"
+    },
+    {
+      "endpoint": "POST /v0/user/{this}",
+      "resource": "users",
+      "sku": "enterprise",
+      "file": "src/enterprise/users/EnterpriseUser.ts",
+      "method": "save"
+    },
+    {
+      "endpoint": "POST /v1/model-provider/config",
+      "resource": "ai",
+      "sku": "cloud",
+      "file": "src/cloud/ai/AIResource.ts",
+      "method": "encode"
+    },
+    {
+      "endpoint": "POST /v1/model-provider:listModels",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/AIResource.ts",
+      "method": "listAvailableModels"
+    },
+    {
+      "endpoint": "POST /v1/model-provider:setDefault",
+      "resource": "ai",
+      "sku": "cloud",
+      "file": "src/cloud/ai/DremioModelProvider.ts",
+      "method": "setDefault"
+    },
+    {
+      "endpoint": "POST /v1/projects/{projectId}/agent",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/chat/methods/sendChatMessage.ts",
+      "method": "fromTextEventStream"
+    },
+    {
+      "endpoint": "POST /v1/projects/{projectId}/agent/conversations",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/conversations/methods/createConversation.ts",
+      "method": "createConversation"
+    },
+    {
+      "endpoint": "POST /v1/projects/{projectId}/agent/conversations/{conversationId}/messages",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/conversations/methods/createExchangeRun.ts",
+      "method": "createExchangeRun"
+    },
+    {
+      "endpoint": "POST /v1/projects/{projectId}/agent/conversations/{conversationId}/runs/{id}:cancel",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/conversations/methods/stopExchangeRun.ts",
+      "method": "stopExchangeRun"
+    },
+    {
+      "endpoint": "PUT /ui/projects/{id}/activate",
+      "resource": "projects",
+      "sku": "cloud",
+      "file": "src/cloud/projects/ProjectsResource.ts",
+      "method": "activate"
+    },
+    {
+      "endpoint": "PUT /v0/projects/{id}",
+      "resource": "projects",
+      "sku": "cloud",
+      "file": "src/cloud/projects/ProjectsResource.ts",
+      "method": "delete"
+    },
+    {
+      "endpoint": "PUT /v0/projects/{projectId}/engines/{this}",
+      "resource": "engines",
+      "sku": "cloud",
+      "file": "src/cloud/engines/Engine.ts",
+      "method": "update"
+    },
+    {
+      "endpoint": "PUT /v0/projects/{projectId}/engines/{this}/start",
+      "resource": "engines",
+      "sku": "enterprise",
+      "file": "src/enterprise/engines/Engine.ts",
+      "method": "start"
+    },
+    {
+      "endpoint": "PUT /v0/projects/{projectId}/engines/{this}/stop",
+      "resource": "engines",
+      "sku": "enterprise",
+      "file": "src/enterprise/engines/Engine.ts",
+      "method": "stop"
+    },
+    {
+      "endpoint": "PUT /v0/projects/{this}",
+      "resource": "projects",
+      "sku": "cloud",
+      "file": "src/cloud/projects/Project.ts",
+      "method": "Err"
+    },
+    {
+      "endpoint": "PUT /v1/model-provider/config/{this}",
+      "resource": "ai",
+      "sku": "enterprise",
+      "file": "src/enterprise/ai/modelProvider/ModelProvider.ts",
+      "method": "encode"
+    }
+  ],
+  "drs_only": [
+    {
+      "endpoint": "GET /v0/projects/{projectId}/catalog/by-path/{path}",
+      "drs_method": "get_catalog_by_path"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/catalog/{id}/graph",
+      "drs_method": "get_lineage"
+    },
+    {
+      "endpoint": "GET /v0/projects/{projectId}/reflection/{id}",
+      "drs_method": "get_reflection"
+    },
+    {
+      "endpoint": "POST /v0/projects/{projectId}/reflection/{id}/refresh",
+      "drs_method": "refresh_reflection"
+    },
+    {
+      "endpoint": "DELETE /v0/projects/{projectId}/reflection/{id}",
+      "drs_method": "delete_reflection"
+    }
+  ]
+}

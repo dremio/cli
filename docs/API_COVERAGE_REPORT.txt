@@ -1,0 +1,166 @@
+Scanning OpenAPI specs in /Users/rahimbhojani/dremio-repo/dremio/openapi/...
+Found 78 endpoints across 3 spec groups
+
+=== COVERED by drs (9/78 spec endpoints) ===
+  get_catalog_by_path       -> GET    /api/v3/catalog/by-path/{*}
+  get_catalog_entity        -> GET    /api/v3/catalog/{*}
+  get_job_status            -> GET    /v0/projects/{*}/job/{*}
+  get_job_results           -> GET    /v0/projects/{*}/job/{*}/results
+  list_roles                -> GET    /v1/roles
+  list_users                -> GET    /v1/users
+  refresh_reflection        -> POST   /api/v3/reflection/{*}/refresh
+  search                    -> POST   /api/v3/search
+  cancel_job                -> POST   /v0/projects/{*}/job/{*}/cancel
+
+=== NOT COVERED by drs (65 spec endpoints available) ===
+  POST   /api/v3/catalog
+         from: enterprise_v3: POST /api/v3/catalog
+         from: enterprise_v3: POST /api/v3/catalog
+  PUT    /api/v3/catalog/{*}
+         from: enterprise_v3: PUT /api/v3/catalog/{id}
+         from: enterprise_v3: PUT /api/v3/catalog/{id}
+  DELETE /api/v3/catalog/{*}
+         from: enterprise_v3: DELETE /api/v3/catalog/{id}
+         from: enterprise_v3: DELETE /api/v3/catalog/{id}
+  POST   /api/v3/reflection
+         from: enterprise_v3: POST /api/v3/reflection
+  GET    /api/v3/scripts
+         from: enterprise_v3: GET /api/v3/scripts
+  POST   /api/v3/scripts
+         from: enterprise_v3: POST /api/v3/scripts
+  GET    /api/v3/scripts/{*}
+         from: enterprise_v3: GET /api/v3/scripts/{id}
+  PATCH  /api/v3/scripts/{*}
+         from: enterprise_v3: PATCH /api/v3/scripts/{id}
+  DELETE /api/v3/scripts/{*}
+         from: enterprise_v3: DELETE /api/v3/scripts/{id}
+  GET    /api/v3/scripts/{*}/grants
+         from: enterprise_v3: GET /api/v3/scripts/{id}/grants
+  PUT    /api/v3/scripts/{*}/grants
+         from: enterprise_v3: PUT /api/v3/scripts/{id}/grants
+  POST   /api/v3/scripts:batchDelete
+         from: enterprise_v3: POST /api/v3/scripts:batchDelete
+  POST   /api/v3/search/feedback
+         from: enterprise_v3: POST /api/v3/search/feedback
+  POST   /api/v3/search/recovery/removeDocuments
+         from: enterprise_v3: POST /api/v3/search/recovery/removeDocuments
+  GET    /api/v3/search/status
+         from: enterprise_v3: GET /api/v3/search/status
+  GET    /api/v3/user
+         from: enterprise_v3: GET /api/v3/user
+  POST   /api/v3/user
+         from: enterprise_v3: POST /api/v3/user
+  GET    /api/v3/user/by-name/{*}
+         from: enterprise_v3: GET /api/v3/user/by-name/{name}
+  GET    /api/v3/user/{*}
+         from: enterprise_v3: GET /api/v3/user/{id}
+  PUT    /api/v3/user/{*}
+         from: enterprise_v3: PUT /api/v3/user/{id}
+  DELETE /api/v3/user/{*}
+         from: enterprise_v3: DELETE /api/v3/user/{id}
+  GET    /api/v3/user/{*}/oauth/credentials
+         from: enterprise_v3: GET /api/v3/user/{id}/oauth/credentials
+  POST   /api/v3/user/{*}/oauth/credentials
+         from: enterprise_v3: POST /api/v3/user/{id}/oauth/credentials
+  PUT    /api/v3/user/{*}/oauth/credentials/{*}
+         from: enterprise_v3: PUT /api/v3/user/{id}/oauth/credentials/{credentialId}
+  DELETE /api/v3/user/{*}/oauth/credentials/{*}
+         from: enterprise_v3: DELETE /api/v3/user/{id}/oauth/credentials/{credentialId}
+  GET    /api/v3/user/{*}/privilege
+         from: enterprise_v3: GET /api/v3/user/{id}/privilege
+  GET    /v0/projects
+         from: cloud_v0: GET /v0/projects
+  POST   /v0/projects
+         from: cloud_v0: POST /v0/projects
+  GET    /v0/projects/{*}
+         from: cloud_v0: GET /v0/projects/{id}
+  PUT    /v0/projects/{*}
+         from: cloud_v0: PUT /v0/projects/{id}
+  DELETE /v0/projects/{*}
+         from: cloud_v0: DELETE /v0/projects/{id}
+  POST   /v0/projects/{*}/engines
+         from: cloud_v0: POST /v0/projects/{project-id}/engines
+  GET    /v0/projects/{*}/engines
+         from: cloud_v0: GET /v0/projects/{project-id}/engines
+  GET    /v0/projects/{*}/engines/{*}
+         from: cloud_v0: GET /v0/projects/{project-id}/engines/{id}
+  DELETE /v0/projects/{*}/engines/{*}
+         from: cloud_v0: DELETE /v0/projects/{project-id}/engines/{id}
+  PUT    /v0/projects/{*}/engines/{*}
+         from: cloud_v0: PUT /v0/projects/{project-id}/engines/{id}
+  PUT    /v0/projects/{*}/engines/{*}/disable
+         from: cloud_v0: PUT /v0/projects/{project-id}/engines/{id}/disable
+  PUT    /v0/projects/{*}/engines/{*}/enable
+         from: cloud_v0: PUT /v0/projects/{project-id}/engines/{id}/enable
+  POST   /v0/projects/{*}/engines/{*}/schedules
+         from: cloud_v0: POST /v0/projects/{project-id}/engines/{engine-id}/schedules
+  GET    /v0/projects/{*}/engines/{*}/schedules
+         from: cloud_v0: GET /v0/projects/{project-id}/engines/{engine-id}/schedules
+  PUT    /v0/projects/{*}/engines/{*}/schedules/{*}
+         from: cloud_v0: PUT /v0/projects/{project-id}/engines/{engine-id}/schedules/{schedule-id}
+  DELETE /v0/projects/{*}/engines/{*}/schedules/{*}
+         from: cloud_v0: DELETE /v0/projects/{project-id}/engines/{engine-id}/schedules/{schedule-id}
+  GET    /v0/projects/{*}/engines/{*}/schedules/{*}
+         from: cloud_v0: GET /v0/projects/{project-id}/engines/{engine-id}/schedules/{schedule-id}
+  GET    /v1/clouds/{*}/grants/{*}/{*}
+         from: cloud_v1: GET /v1/clouds/{cloudId}/grants/{granteeType}/{granteeId}
+  PUT    /v1/clouds/{*}/grants/{*}/{*}
+         from: cloud_v1: PUT /v1/clouds/{cloudId}/grants/{granteeType}/{granteeId}
+  DELETE /v1/clouds/{*}/grants/{*}/{*}
+         from: cloud_v1: DELETE /v1/clouds/{cloudId}/grants/{granteeType}/{granteeId}
+  GET    /v1/orgs/grants/{*}/{*}
+         from: cloud_v1: GET /v1/orgs/grants/{granteeType}/{granteeId}
+  PUT    /v1/orgs/grants/{*}/{*}
+         from: cloud_v1: PUT /v1/orgs/grants/{granteeType}/{granteeId}
+  DELETE /v1/orgs/grants/{*}/{*}
+         from: cloud_v1: DELETE /v1/orgs/grants/{granteeType}/{granteeId}
+  GET    /v1/projects/{*}/engines/{*}/grants/{*}/{*}
+         from: cloud_v1: GET /v1/projects/{projectId}/engines/{engineId}/grants/{granteeType}/{granteeId}
+  PUT    /v1/projects/{*}/engines/{*}/grants/{*}/{*}
+         from: cloud_v1: PUT /v1/projects/{projectId}/engines/{engineId}/grants/{granteeType}/{granteeId}
+  DELETE /v1/projects/{*}/engines/{*}/grants/{*}/{*}
+         from: cloud_v1: DELETE /v1/projects/{projectId}/engines/{engineId}/grants/{granteeType}/{granteeId}
+  GET    /v1/projects/{*}/grants/{*}/{*}
+         from: cloud_v1: GET /v1/projects/{projectId}/grants/{granteeType}/{granteeId}
+  PUT    /v1/projects/{*}/grants/{*}/{*}
+         from: cloud_v1: PUT /v1/projects/{projectId}/grants/{granteeType}/{granteeId}
+  DELETE /v1/projects/{*}/grants/{*}/{*}
+         from: cloud_v1: DELETE /v1/projects/{projectId}/grants/{granteeType}/{granteeId}
+  POST   /v1/roles
+         from: cloud_v1: POST /v1/roles
+  GET    /v1/roles/name/{*}
+         from: cloud_v1: GET /v1/roles/name/{roleName}
+  GET    /v1/roles/{*}
+         from: cloud_v1: GET /v1/roles/{roleId}
+  PUT    /v1/roles/{*}
+         from: cloud_v1: PUT /v1/roles/{roleId}
+  DELETE /v1/roles/{*}
+         from: cloud_v1: DELETE /v1/roles/{roleId}
+  POST   /v1/users/invite
+         from: cloud_v1: POST /v1/users/invite
+  GET    /v1/users/name/{*}
+         from: cloud_v1: GET /v1/users/name/{userName}
+  GET    /v1/users/{*}
+         from: cloud_v1: GET /v1/users/{userId}
+  PUT    /v1/users/{*}
+         from: cloud_v1: PUT /v1/users/{userId}
+  DELETE /v1/users/{*}
+         from: cloud_v1: DELETE /v1/users/{userId}
+
+=== DRS METHODS NOT IN SPEC (8) ===
+  get_tags                  -> GET    /api/v3/catalog/{*}/collaboration/tag
+  get_wiki                  -> GET    /api/v3/catalog/{*}/collaboration/wiki
+  get_lineage               -> GET    /api/v3/catalog/{*}/graph
+  get_reflection            -> GET    /api/v3/reflection/{*}
+  delete_reflection         -> DELETE /api/v3/reflection/{*}
+  submit_sql                -> POST   /v0/projects/{*}/sql
+  get_user_by_name          -> GET    /v1/user/by-name/{*}
+  get_grants                -> GET    /v1/{*}/{*}/grants/{*}/{*}
+  (These may use undocumented endpoints or SQL-based implementations)
+
+=== SUMMARY ===
+  Spec endpoints found:     78
+  Covered by drs:           9
+  Available but not covered: 65
+  drs methods not in spec:  8
+  Coverage: 12%
