@@ -55,7 +55,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "list",
         "description": "List top-level catalog entities: sources, spaces, and home folder.",
         "mechanism": "REST",
-        "endpoints": ["GET /api/v3/catalog"],
+        "endpoints": ["GET /v0/projects/{pid}/catalog"],
         "parameters": [
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
             {"name": "fields", "type": "string", "required": False, "description": "Comma-separated fields to include"},
@@ -66,7 +66,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "get",
         "description": "Get full metadata for a catalog entity by dot-separated path.",
         "mechanism": "REST",
-        "endpoints": ["GET /api/v3/catalog/by-path/{path}"],
+        "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}"],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True, "description": "Dot-separated entity path (e.g., myspace.folder.table)"},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
@@ -78,7 +78,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "search",
         "description": "Full-text search for tables, views, and sources by keyword.",
         "mechanism": "REST",
-        "endpoints": ["POST /api/v3/search"],
+        "endpoints": ["POST /v0/api/projects/{pid}/search"],
         "parameters": [
             {"name": "term", "type": "string", "required": True, "positional": True, "description": "Search term"},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
@@ -89,7 +89,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "describe",
         "description": "Get column names, data types, and nullability for a table or view.",
         "mechanism": "REST",
-        "endpoints": ["GET /api/v3/catalog/by-path/{path}"],
+        "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}"],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True, "description": "Dot-separated table/view path"},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
@@ -101,7 +101,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "lineage",
         "description": "Get upstream and downstream dependency graph for a table or view.",
         "mechanism": "REST",
-        "endpoints": ["GET /api/v3/catalog/by-path/{path}", "GET /api/v3/catalog/{id}/graph"],
+        "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}", "GET /v0/projects/{pid}/catalog/{id}/graph"],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True, "description": "Dot-separated table/view path"},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
@@ -112,7 +112,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "wiki",
         "description": "Get wiki documentation text and tags for a catalog entity.",
         "mechanism": "REST",
-        "endpoints": ["GET /api/v3/catalog/by-path/{path}", "GET /api/v3/catalog/{id}/collaboration/wiki", "GET /api/v3/catalog/{id}/collaboration/tag"],
+        "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}", "GET /v0/projects/{pid}/catalog/{id}/collaboration/wiki", "GET /v0/projects/{pid}/catalog/{id}/collaboration/tag"],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True, "description": "Dot-separated entity path"},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
@@ -147,7 +147,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "status",
         "description": "Get detailed status of a reflection by ID.",
         "mechanism": "REST",
-        "endpoints": ["GET /api/v3/reflection/{id}"],
+        "endpoints": ["GET /v0/projects/{pid}/reflection/{id}"],
         "parameters": [
             {"name": "reflection_id", "type": "string", "required": True, "positional": True, "description": "Reflection ID (get from 'drs reflect list')"},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
@@ -158,7 +158,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "refresh",
         "description": "Trigger an immediate refresh of a reflection.",
         "mechanism": "REST",
-        "endpoints": ["POST /api/v3/reflection/{id}/refresh"],
+        "endpoints": ["POST /v0/projects/{pid}/reflection/{id}/refresh"],
         "mutating": True,
         "parameters": [
             {"name": "reflection_id", "type": "string", "required": True, "positional": True, "description": "Reflection ID to refresh"},
@@ -170,7 +170,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "drop",
         "description": "Permanently delete a reflection. Cannot be undone.",
         "mechanism": "REST",
-        "endpoints": ["DELETE /api/v3/reflection/{id}"],
+        "endpoints": ["DELETE /v0/projects/{pid}/reflection/{id}"],
         "mutating": True,
         "parameters": [
             {"name": "reflection_id", "type": "string", "required": True, "positional": True, "description": "Reflection ID to delete"},
@@ -182,7 +182,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "list",
         "description": "List recent query jobs, optionally filtered by status.",
         "mechanism": "SQL",
-        "sql_template": "SELECT ... FROM sys.project.jobs_recent WHERE ... ORDER BY start_time DESC LIMIT {limit}",
+        "sql_template": "SELECT job_id, user_name, query_type, status, submitted_ts, final_state_ts FROM sys.project.jobs_recent WHERE ... ORDER BY submitted_ts DESC LIMIT {limit}",
         "parameters": [
             {"name": "status", "type": "enum", "required": False, "enum": sorted(VALID_JOB_STATES), "description": "Filter by job state"},
             {"name": "limit", "type": "integer", "required": False, "default": 25, "description": "Max jobs to return"},
@@ -217,7 +217,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "grants",
         "description": "Get ACL grants on a catalog entity.",
         "mechanism": "REST",
-        "endpoints": ["GET /api/v3/catalog/by-path/{path}"],
+        "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}"],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True, "description": "Dot-separated entity path"},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},

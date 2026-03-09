@@ -33,18 +33,18 @@ DRS_COVERAGE = {
     "get_job_results":   ("GET",  "/v0/projects/{pid}/job/{jobId}/results"),
     "cancel_job":        ("POST", "/v0/projects/{pid}/job/{jobId}/cancel"),
 
-    # Catalog (api/v3)
-    "get_catalog_entity":  ("GET",  "/api/v3/catalog/{id}"),
-    "get_catalog_by_path": ("GET",  "/api/v3/catalog/by-path/{path}"),
-    "search":              ("POST", "/api/v3/search"),
-    "get_lineage":         ("GET",  "/api/v3/catalog/{id}/graph"),
-    "get_wiki":            ("GET",  "/api/v3/catalog/{id}/collaboration/wiki"),
-    "get_tags":            ("GET",  "/api/v3/catalog/{id}/collaboration/tag"),
+    # Catalog (v0 project-scoped)
+    "get_catalog_entity":  ("GET",  "/v0/projects/{pid}/catalog/{id}"),
+    "get_catalog_by_path": ("GET",  "/v0/projects/{pid}/catalog/by-path/{path}"),
+    "search":              ("POST", "/v0/api/projects/{pid}/search"),
+    "get_lineage":         ("GET",  "/v0/projects/{pid}/catalog/{id}/graph"),
+    "get_wiki":            ("GET",  "/v0/projects/{pid}/catalog/{id}/collaboration/wiki"),
+    "get_tags":            ("GET",  "/v0/projects/{pid}/catalog/{id}/collaboration/tag"),
 
-    # Reflections (api/v3)
-    "get_reflection":     ("GET",    "/api/v3/reflection/{id}"),
-    "refresh_reflection": ("POST",   "/api/v3/reflection/{id}/refresh"),
-    "delete_reflection":  ("DELETE", "/api/v3/reflection/{id}"),
+    # Reflections (v0 project-scoped)
+    "get_reflection":     ("GET",    "/v0/projects/{pid}/reflection/{id}"),
+    "refresh_reflection": ("POST",   "/v0/projects/{pid}/reflection/{id}/refresh"),
+    "delete_reflection":  ("DELETE", "/v0/projects/{pid}/reflection/{id}"),
 
     # Users & Roles (v1)
     "list_users":        ("GET", "/v1/users"),

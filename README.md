@@ -5,6 +5,8 @@ A command-line tool for working with Dremio Cloud. Run SQL queries, browse the c
 Built for developers who want to script against Dremio without clicking through a UI, and for AI agents that need structured access to Dremio metadata and query execution.
 
 > **Dremio Cloud only.** Dremio Software (self-hosted) has different auth and API behavior and is not supported in this version.
+>
+> API reference: [docs.dremio.com/dremio-cloud/api](https://docs.dremio.com/dremio-cloud/api/)
 
 ## Why this exists
 
@@ -155,6 +157,30 @@ Returns a JSON schema with parameter names, types, required/optional, and descri
 - **REST + SQL hybrid** — Some operations use the REST API (catalog, reflections, access), others query system tables via SQL (jobs, reflection listing by dataset). The user doesn't need to know which.
 - **Async throughout** — All command logic is `async`. The CLI wraps with `asyncio.run()`.
 - **Input validation** — SQL-interpolated values (job IDs, state filters) are validated before use. Catalog paths are checked for traversal attacks. This matters when AI agents are constructing commands.
+
+### API endpoints used
+
+All endpoints target `https://api.dremio.cloud`. See the [Dremio Cloud API reference](https://docs.dremio.com/dremio-cloud/api/) for full details.
+
+| URL pattern | Used by | Docs |
+|-------------|---------|------|
+| `POST /v0/projects/{pid}/sql` | `query run` | [SQL](https://docs.dremio.com/dremio-cloud/api/sql) |
+| `GET /v0/projects/{pid}/job/{id}` | `query status`, `jobs get` | [Job](https://docs.dremio.com/dremio-cloud/api/job/) |
+| `GET /v0/projects/{pid}/job/{id}/results` | `query run` (result fetch) | [Job Results](https://docs.dremio.com/dremio-cloud/api/job/job-results/) |
+| `POST /v0/projects/{pid}/job/{id}/cancel` | `query cancel` | [Job](https://docs.dremio.com/dremio-cloud/api/job/) |
+| `GET /v0/projects/{pid}/catalog` | `catalog list` | [Catalog](https://docs.dremio.com/dremio-cloud/api/catalog/) |
+| `GET /v0/projects/{pid}/catalog/by-path/{path}` | `catalog get`, `schema describe`, `schema lineage`, `schema wiki`, `access grants` | [Catalog](https://docs.dremio.com/dremio-cloud/api/catalog/) |
+| `GET /v0/projects/{pid}/catalog/{id}/graph` | `schema lineage` | [Lineage](https://docs.dremio.com/dremio-cloud/api/catalog/lineage) |
+| `GET /v0/projects/{pid}/catalog/{id}/collaboration/wiki` | `schema wiki` | [Wiki](https://docs.dremio.com/dremio-cloud/api/catalog/wiki) |
+| `GET /v0/projects/{pid}/catalog/{id}/collaboration/tag` | `schema wiki` | [Tag](https://docs.dremio.com/dremio-cloud/api/catalog/tag) |
+| `POST /v0/api/projects/{pid}/search` | `catalog search` | [Search](https://docs.dremio.com/dremio-cloud/api/search) |
+| `GET /v0/projects/{pid}/reflection/{id}` | `reflect status` | [Reflection](https://docs.dremio.com/dremio-cloud/api/reflection/) |
+| `POST /v0/projects/{pid}/reflection/{id}/refresh` | `reflect refresh` | [Reflection](https://docs.dremio.com/dremio-cloud/api/reflection/) |
+| `DELETE /v0/projects/{pid}/reflection/{id}` | `reflect drop` | [Reflection](https://docs.dremio.com/dremio-cloud/api/reflection/) |
+| `GET /v1/users`, `GET /v1/users/name/{name}` | `access whoami`, `access audit` | — |
+| `GET /v1/roles` | `access roles` | — |
+
+Commands that query system tables (`jobs list`, `jobs profile`, `reflect list`, `schema sample`) use `POST /v0/projects/{pid}/sql` to submit SQL against `sys.project.*` tables.
 
 ## Configuration reference
 
