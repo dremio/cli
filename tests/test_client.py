@@ -38,6 +38,13 @@ class TestURLBuilders:
         assert client._v1("/roles") == "https://api.dremio.cloud/v1/roles"
 
 
+    def test_v1_user_by_name_url(self, client: DremioClient) -> None:
+        """Verify user lookup uses /v1/users/name/ (Cloud endpoint), not /v1/user/by-name/."""
+        url = client._v1("/users/name/rahim")
+        assert url == "https://api.dremio.cloud/v1/users/name/rahim"
+        assert "/user/by-name/" not in url
+
+
 class TestClientHeaders:
     def test_auth_header(self, client: DremioClient) -> None:
         assert client._client.headers["authorization"] == "Bearer test-token"
