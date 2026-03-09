@@ -176,8 +176,30 @@ def test_user_password_from_env(tmp_path: Path) -> None:
     assert config.pat == "env-session-token"
 
 
-def test_token_takes_priority_over_user_password(tmp_path: Path) -> None:
-    """If --token is provided, don't attempt user/password login."""
+def test_cli_user_password_overrides_cli_token(tmp_path: Path) -> None:
+    """--user/--password should override --token (fresh login wins over stale PAT)."""
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"token": "fresh-session"}
+    mock_response.raise_for_status = MagicMock()
+
+    env = {"DREMIO_PROJECT_ID": "proj"}
+    with patch.dict(os.environ, env, clear=False):
+        for k in ["DREMIO_TOKEN", "DREMIO_PAT", "DREMIO_USER", "DREMIO_PASSWORD"]:
+            os.environ.pop(k, None)
+        with patch("drs.auth.httpx.post", return_value=mock_response) as mock_post:
+            config = load_config(
+                tmp_path / "nonexistent.yaml",
+                cli_token="stale-token",
+                cli_user="admin",
+                cli_password="secret",
+            )
+
+    assert config.pat == "fresh-session"
+    mock_post.assert_called_once()
+
+
+def test_cli_token_used_without_user_password(tmp_path: Path) -> None:
+    """--token should be used when no --user/--password provided."""
     env = {"DREMIO_PROJECT_ID": "proj"}
     with patch.dict(os.environ, env, clear=False):
         for k in ["DREMIO_TOKEN", "DREMIO_PAT", "DREMIO_USER", "DREMIO_PASSWORD"]:
@@ -186,8 +208,6 @@ def test_token_takes_priority_over_user_password(tmp_path: Path) -> None:
             config = load_config(
                 tmp_path / "nonexistent.yaml",
                 cli_token="direct-token",
-                cli_user="admin",
-                cli_password="secret",
             )
 
     assert config.pat == "direct-token"

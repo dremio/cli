@@ -50,9 +50,11 @@ def load_config(
     """Load config with resolution order: CLI args > env vars > config file > defaults.
 
     Authentication priority:
-      1. --token (or DREMIO_TOKEN env)
-      2. --user + --password (or DREMIO_USER + DREMIO_PASSWORD env) → login for token
-      3. Config file pat/token field
+      1. --user + --password CLI args → login for fresh session token
+      2. --token CLI arg
+      3. DREMIO_TOKEN / DREMIO_PAT env var
+      4. Config file pat/token field
+      5. DREMIO_USER + DREMIO_PASSWORD env vars → login for token
     """
     # -- Config file (lowest priority) --
     file_values: dict[str, Any] = {}
@@ -88,13 +90,17 @@ def load_config(
         merged["uri"] = cli_uri
     if cli_project_id:
         merged["project_id"] = cli_project_id
-    if cli_token:
-        merged["pat"] = cli_token
 
-    # -- User/password login (if no token resolved yet) --
-    if "pat" not in merged:
-        user = cli_user or os.environ.get("DREMIO_USER")
-        password = cli_password or os.environ.get("DREMIO_PASSWORD")
+    # -- Token resolution: CLI user/pass > CLI token > env user/pass > env/file token --
+    if cli_user and cli_password:
+        # CLI credentials always win — login even if a token exists
+        merged["pat"] = _login(merged.get("uri", DEFAULT_URI), cli_user, cli_password)
+    elif cli_token:
+        merged["pat"] = cli_token
+    elif "pat" not in merged:
+        # No token from env/file — try env user/password as last resort
+        user = os.environ.get("DREMIO_USER")
+        password = os.environ.get("DREMIO_PASSWORD")
         if user and password:
             merged["pat"] = _login(merged.get("uri", DEFAULT_URI), user, password)
 
