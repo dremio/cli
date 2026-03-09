@@ -19,8 +19,8 @@ app = typer.Typer(help="List and inspect query jobs.")
 async def list_jobs(
     client: DremioClient, status_filter: str | None = None, limit: int = 25
 ) -> dict:
-    """List recent jobs via sys.project.jobs_recent."""
-    sql = "SELECT job_id, user_name, query_type, status, submitted_ts, final_state_ts FROM sys.project.jobs_recent"
+    """List recent jobs via sys.project.jobs."""
+    sql = "SELECT job_id, user_name, query_type, status, submitted_ts, final_state_ts FROM sys.project.jobs"
     if status_filter:
         validated = validate_job_state(status_filter)
         sql += f" WHERE status = '{validated}'"
@@ -36,9 +36,16 @@ async def get_job(client: DremioClient, job_id: str) -> dict:
 
 
 async def profile(client: DremioClient, job_id: str) -> dict:
-    """Get execution profile for a job via system table."""
+    """Get execution profile for a job via sys.project.jobs."""
     validated = validate_job_id(job_id)
-    sql = f"SELECT * FROM sys.project.\"job_profiles\" WHERE job_id = '{validated}'"
+    sql = (
+        "SELECT job_id, status, query_type, query, "
+        "planner_estimated_cost, rows_scanned, bytes_scanned, "
+        "rows_returned, bytes_returned, accelerated, engine, "
+        "submitted_ts, attempt_started_ts, planning_start_ts, "
+        "execution_start_ts, final_state_ts, error_msg "
+        f"FROM sys.project.jobs WHERE job_id = '{validated}'"
+    )
     return await run_query(client, sql)
 
 
@@ -77,7 +84,7 @@ def cli_list(
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
     fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include in output"),
 ) -> None:
-    """List recent query jobs from sys.project.jobs_recent.
+    """List recent query jobs from sys.project.jobs.
 
     Shows job ID, user, query type, state, and timing. Results are ordered
     by start time (most recent first).
@@ -102,10 +109,10 @@ def cli_profile(
     job_id: str = typer.Argument(help="Job ID (UUID) to get execution profile for"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Show operator-level execution profile for a completed job.
+    """Show execution profile for a completed job.
 
-    Queries sys.project.job_profiles for plan phases, row counts,
-    and timing per operator. Useful for diagnosing slow queries.
+    Queries sys.project.jobs for cost estimates, scan stats,
+    timing breakdown, and acceleration info. Useful for diagnosing slow queries.
     """
     client = _get_client()
     _run_command(profile(client, job_id), client, fmt)

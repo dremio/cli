@@ -136,7 +136,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "list",
         "description": "List all reflections defined on a dataset.",
         "mechanism": "SQL",
-        "sql_template": "SELECT * FROM sys.project.\"reflections\" WHERE dataset_id = '{dataset_id}'",
+        "sql_template": "SELECT * FROM sys.project.reflections WHERE dataset_id = '{dataset_id}'",
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True, "description": "Dot-separated dataset path"},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
@@ -182,7 +182,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "list",
         "description": "List recent query jobs, optionally filtered by status.",
         "mechanism": "SQL",
-        "sql_template": "SELECT job_id, user_name, query_type, status, submitted_ts, final_state_ts FROM sys.project.jobs_recent WHERE ... ORDER BY submitted_ts DESC LIMIT {limit}",
+        "sql_template": "SELECT job_id, user_name, query_type, status, submitted_ts, final_state_ts FROM sys.project.jobs WHERE ... ORDER BY submitted_ts DESC LIMIT {limit}",
         "parameters": [
             {"name": "status", "type": "enum", "required": False, "enum": sorted(VALID_JOB_STATES), "description": "Filter by job state"},
             {"name": "limit", "type": "integer", "required": False, "default": 25, "description": "Max jobs to return"},
@@ -206,7 +206,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "command": "profile",
         "description": "Get operator-level execution profile for a completed job.",
         "mechanism": "SQL",
-        "sql_template": "SELECT * FROM sys.project.\"job_profiles\" WHERE job_id = '{job_id}'",
+        "sql_template": "SELECT job_id, status, query_type, query, planner_estimated_cost, rows_scanned, bytes_scanned, rows_returned, bytes_returned, accelerated, engine, submitted_ts, final_state_ts, error_msg FROM sys.project.jobs WHERE job_id = '{job_id}'",
         "parameters": [
             {"name": "job_id", "type": "string", "required": True, "positional": True, "format": "uuid", "description": "Job ID (UUID)"},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},

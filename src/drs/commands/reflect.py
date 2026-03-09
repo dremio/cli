@@ -16,14 +16,14 @@ app = typer.Typer(help="Manage reflections (materialized views).")
 
 
 async def list_reflections(client: DremioClient, path: str) -> dict:
-    """List reflections on a dataset via sys.reflections."""
+    """List reflections on a dataset via sys.project.reflections."""
     parts = parse_path(path)
     try:
         entity = await client.get_catalog_by_path(parts)
     except httpx.HTTPStatusError as exc:
         raise handle_api_error(exc) from exc
     dataset_id = entity["id"]
-    sql = f"SELECT * FROM sys.project.\"reflections\" WHERE dataset_id = '{dataset_id}'"
+    sql = f"SELECT * FROM sys.project.reflections WHERE dataset_id = '{dataset_id}'"
     return await run_query(client, sql)
 
 
@@ -83,7 +83,7 @@ def cli_list(
 ) -> None:
     """List all reflections defined on a dataset.
 
-    Queries sys.reflections filtered by the dataset ID. Shows reflection type,
+    Queries sys.project.reflections filtered by the dataset ID. Shows reflection type,
     status, and configuration.
     """
     client = _get_client()
