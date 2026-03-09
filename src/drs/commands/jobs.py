@@ -20,11 +20,11 @@ async def list_jobs(
     client: DremioClient, status_filter: str | None = None, limit: int = 25
 ) -> dict:
     """List recent jobs via sys.project.jobs_recent."""
-    sql = "SELECT job_id, user_name, query_type, job_state, start_time, finish_time FROM sys.project.jobs_recent"
+    sql = "SELECT job_id, user_name, query_type, status, submitted_ts, final_state_ts FROM sys.project.jobs_recent"
     if status_filter:
         validated = validate_job_state(status_filter)
-        sql += f" WHERE job_state = '{validated}'"
-    sql += f" ORDER BY start_time DESC LIMIT {limit}"
+        sql += f" WHERE status = '{validated}'"
+    sql += f" ORDER BY submitted_ts DESC LIMIT {limit}"
     return await run_query(client, sql)
 
 
