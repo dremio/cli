@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "name": "dremio/cli",
+  "description": "Dremio developer tools — CLI, MCP server, and Claude Code skills for query, catalog, schema, reflections, jobs, and access management.",
+  "plugins": [
+    {
+      "name": "dremio",
+      "path": "./plugins/dremio"
+    }
+  ]
+}
