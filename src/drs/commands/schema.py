@@ -111,8 +111,11 @@ async def set_wiki(client: DremioClient, path: str, text: str) -> dict:
     try:
         existing = await client.get_wiki(entity_id)
         version = existing.get("version")
-    except httpx.HTTPStatusError:
-        pass
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            pass  # no wiki exists yet
+        else:
+            raise handle_api_error(exc) from exc
 
     try:
         result = await client.set_wiki(entity_id, text, version=version)
@@ -135,8 +138,11 @@ async def set_tags(client: DremioClient, path: str, tags: list[str]) -> dict:
     try:
         existing = await client.get_tags(entity_id)
         version = existing.get("version")
-    except httpx.HTTPStatusError:
-        pass
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            pass  # no tags exist yet
+        else:
+            raise handle_api_error(exc) from exc
 
     try:
         result = await client.set_tags(entity_id, tags, version=version)

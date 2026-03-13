@@ -72,7 +72,9 @@ class DremioClient:
     async def _put(self, url: str, json: dict | None = None) -> Any:
         resp = await self._client.put(url, json=json)
         resp.raise_for_status()
-        return resp.json()
+        if resp.content:
+            return resp.json()
+        return {"status": "ok"}
 
     async def _delete(self, url: str, params: dict | None = None) -> Any:
         resp = await self._client.delete(url, params=params)
