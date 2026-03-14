@@ -22,7 +22,7 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-from drs.commands.user import list_users, get_user, invite_user, delete_user
+from drs.commands.user import list_users, get_user, create_user, delete_user, whoami, audit
 
 
 @pytest.mark.asyncio
@@ -53,9 +53,9 @@ async def test_get_user_falls_back_to_id(mock_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_invite_user(mock_client) -> None:
+async def test_create_user(mock_client) -> None:
     mock_client.invite_user = AsyncMock(return_value={"id": "u2", "email": "bob@example.com"})
-    result = await invite_user(mock_client, "bob@example.com", role_id="role-1")
+    result = await create_user(mock_client, "bob@example.com", role_id="role-1")
     mock_client.invite_user.assert_called_once_with({"email": "bob@example.com", "roleId": "role-1"})
 
 
@@ -64,3 +64,20 @@ async def test_delete_user(mock_client) -> None:
     mock_client.delete_user = AsyncMock(return_value={"status": "ok"})
     await delete_user(mock_client, "u1")
     mock_client.delete_user.assert_called_once_with("u1")
+
+
+@pytest.mark.asyncio
+async def test_whoami(mock_client) -> None:
+    mock_client.list_users = AsyncMock(return_value={"data": [{"id": "u1", "name": "me"}]})
+    result = await whoami(mock_client)
+    mock_client.list_users.assert_called_once_with(max_results=1)
+
+
+@pytest.mark.asyncio
+async def test_audit(mock_client) -> None:
+    mock_client.get_user_by_name = AsyncMock(return_value={
+        "id": "u1", "roles": [{"id": "r1", "name": "admin"}]
+    })
+    result = await audit(mock_client, "alice")
+    assert result["username"] == "alice"
+    assert result["roles"] == [{"role_id": "r1", "role_name": "admin"}]

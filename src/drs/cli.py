@@ -13,34 +13,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""drs — Developer CLI for Dremio Cloud. Entry point and command registration."""
+"""dremio — Developer CLI for Dremio Cloud. Entry point and command registration."""
 
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
 from pathlib import Path
 from typing import Optional
 
+import httpx
 import typer
 
 from drs.auth import DrsConfig, load_config
 from drs.client import DremioClient
-from drs.commands import query, catalog, schema, reflect, jobs, access, engine, user, role, grant
+from drs.commands import query, schema, engine, user, role, grant
+from drs.commands import folder, reflection, wiki, tag, job
 
 app = typer.Typer(
-    name="drs",
-    help="Developer CLI for Dremio Cloud — query, catalog, schema, reflections, jobs, access, engines, users, roles, and grants.",
+    name="dremio",
+    help="Developer CLI for Dremio Cloud.",
     no_args_is_help=True,
 )
 
 # Register command groups
 app.add_typer(query.app, name="query")
-app.add_typer(catalog.app, name="catalog")
+app.add_typer(folder.app, name="folder")
 app.add_typer(schema.app, name="schema")
-app.add_typer(reflect.app, name="reflect")
-app.add_typer(jobs.app, name="jobs")
-app.add_typer(access.app, name="access")
+app.add_typer(wiki.app, name="wiki")
+app.add_typer(tag.app, name="tag")
+app.add_typer(reflection.app, name="reflection")
+app.add_typer(job.app, name="job")
 app.add_typer(engine.app, name="engine")
 app.add_typer(user.app, name="user")
 app.add_typer(role.app, name="role")
@@ -58,7 +62,7 @@ def main(
     project_id: Optional[str] = typer.Option(None, "--project-id", help="Dremio Cloud project ID"),
     uri: Optional[str] = typer.Option(None, "--uri", help="Dremio API base URI (e.g., https://api.dremio.cloud, https://api.eu.dremio.cloud)"),
 ) -> None:
-    """Global options for drs CLI."""
+    """Global options for dremio CLI."""
     global _cli_opts
     _cli_opts = {
         "config_path": Path(config) if config else None,
@@ -93,29 +97,47 @@ def get_client() -> DremioClient:
     return DremioClient(get_config())
 
 
+# -- Top-level commands --
+
+@app.command("search")
+def search_command(
+    term: str = typer.Argument(help="Search term (matches table names, view names, source names)"),
+    fmt: str = typer.Option("json", "--output", "-o", help="Output format: json, csv, pretty"),
+) -> None:
+    """Full-text search across all catalog entities (tables, views, sources)."""
+    from drs.output import OutputFormat, output, error
+    from drs.utils import handle_api_error, DremioAPIError
+
+    client = get_client()
+
+    async def _execute():
+        try:
+            try:
+                return await client.search(term)
+            except httpx.HTTPStatusError as exc:
+                raise handle_api_error(exc) from exc
+        finally:
+            await client.close()
+
+    try:
+        result = asyncio.run(_execute())
+    except DremioAPIError as exc:
+        error(str(exc))
+        raise typer.Exit(1)
+    output(result, OutputFormat(fmt))
+
+
 @app.command("describe")
 def describe_command(
-    command: str = typer.Argument(help="Command to describe (e.g., 'query.run', 'catalog.get', 'reflect.drop')"),
+    command: str = typer.Argument(help="Command to describe (e.g., 'query.run', 'folder.get', 'reflection.delete')"),
 ) -> None:
-    """Show machine-readable schema for a command — parameters, types, and descriptions.
-
-    Use this to discover what parameters a command accepts before calling it.
-    Outputs JSON with parameter names, types, required/optional, and descriptions.
-    """
-    from drs.introspect import describe_command as _describe
+    """Show machine-readable schema for a command — parameters, types, and descriptions."""
+    from drs.introspect import describe_command as _describe, list_commands
     result = _describe(command)
     if result is None:
         print(f"Unknown command: {command}", file=sys.stderr)
-        print("Available commands: query.run, query.status, query.cancel, "
-              "catalog.list, catalog.get, catalog.search, catalog.create-space, catalog.create-folder, catalog.delete, "
-              "schema.describe, schema.lineage, schema.wiki, schema.set-wiki, schema.set-tags, schema.sample, "
-              "reflect.create, reflect.list, reflect.status, reflect.refresh, reflect.drop, "
-              "jobs.list, jobs.get, jobs.profile, "
-              "access.grants, access.roles, access.whoami, access.audit, "
-              "engine.list, engine.get, engine.create, engine.update, engine.delete, engine.enable, engine.disable, "
-              "user.list, user.get, user.invite, user.update, user.delete, "
-              "role.list, role.get, role.create, role.update, role.delete, "
-              "grant.get, grant.set, grant.remove", file=sys.stderr)
+        commands = list_commands()
+        print(f"Available commands: {', '.join(commands)}", file=sys.stderr)
         raise typer.Exit(1)
     print(json.dumps(result, indent=2))
 

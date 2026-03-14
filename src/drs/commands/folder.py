@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""drs catalog — browse and search the Dremio catalog."""
+"""dremio folder — manage spaces and folders in the Dremio catalog."""
 
 from __future__ import annotations
 
@@ -23,10 +23,11 @@ import httpx
 import typer
 
 from drs.client import DremioClient
+from drs.commands.query import run_query
 from drs.output import OutputFormat, output, error
-from drs.utils import handle_api_error, parse_path
+from drs.utils import handle_api_error, parse_path, quote_path_sql
 
-app = typer.Typer(help="Browse and search the Dremio catalog.")
+app = typer.Typer(help="Manage spaces and folders in the Dremio catalog.")
 
 
 async def list_catalog(client: DremioClient) -> dict:
@@ -48,21 +49,15 @@ async def get_entity(client: DremioClient, path: str) -> dict:
         raise handle_api_error(exc) from exc
 
 
-async def create_space(client: DremioClient, name: str) -> dict:
-    """Create a new space."""
-    try:
-        return await client.create_catalog_entity({"entityType": "space", "name": name})
-    except httpx.HTTPStatusError as exc:
-        raise handle_api_error(exc) from exc
-
-
 async def create_folder(client: DremioClient, path: str) -> dict:
-    """Create a folder at the given dot-separated path (e.g., myspace.newfolder)."""
+    """Create a space (single component) or folder (nested path) using SQL."""
     parts = parse_path(path)
-    try:
-        return await client.create_catalog_entity({"entityType": "folder", "path": parts})
-    except httpx.HTTPStatusError as exc:
-        raise handle_api_error(exc) from exc
+    if len(parts) == 1:
+        sql = f'CREATE SPACE "{parts[0]}"'
+    else:
+        quoted = quote_path_sql(path)
+        sql = f"CREATE FOLDER {quoted}"
+    return await run_query(client, sql)
 
 
 async def delete_entity(client: DremioClient, path: str) -> dict:
@@ -80,12 +75,19 @@ async def delete_entity(client: DremioClient, path: str) -> dict:
         raise handle_api_error(exc) from exc
 
 
-async def search_catalog(client: DremioClient, term: str) -> dict:
-    """Full-text search for catalog entities."""
+async def grants(client: DremioClient, path: str) -> dict:
+    """Get ACL grants on a catalog entity."""
+    parts = parse_path(path)
     try:
-        return await client.search(term)
+        entity = await client.get_catalog_by_path(parts)
     except httpx.HTTPStatusError as exc:
         raise handle_api_error(exc) from exc
+    acl = entity.get("accessControlList", {})
+    return {
+        "path": path,
+        "id": entity.get("id"),
+        "accessControlList": acl,
+    }
 
 
 # -- CLI wrappers --
@@ -119,7 +121,7 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
 @app.command("list")
 def cli_list(
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
-    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include in output"),
+    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include"),
 ) -> None:
     """List top-level catalog entities: sources, spaces, and home folder."""
     client = _get_client()
@@ -128,35 +130,25 @@ def cli_list(
 
 @app.command("get")
 def cli_get(
-    path: str = typer.Argument(help='Dot-separated entity path (e.g., myspace.folder.table). Quote components with dots: \'"My Source".table\''),
+    path: str = typer.Argument(help='Dot-separated entity path (e.g., myspace.folder.table)'),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
-    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include in output"),
+    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include"),
 ) -> None:
-    """Get full metadata for a catalog entity by path.
-
-    Returns entity type, ID, children (for containers), fields (for datasets),
-    and access control information.
-    """
+    """Get full metadata for a catalog entity by path."""
     client = _get_client()
     _run_command(get_entity(client, path), client, fmt, fields=fields)
 
 
-@app.command("create-space")
-def cli_create_space(
-    name: str = typer.Argument(help="Name for the new space"),
+@app.command("create")
+def cli_create(
+    path: str = typer.Argument(help="Space name (single component) or dot-separated folder path (e.g., myspace.newfolder)"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Create a new space in the catalog."""
-    client = _get_client()
-    _run_command(create_space(client, name), client, fmt)
+    """Create a space or folder.
 
-
-@app.command("create-folder")
-def cli_create_folder(
-    path: str = typer.Argument(help="Dot-separated path for new folder (e.g., myspace.newfolder)"),
-    fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
-) -> None:
-    """Create a folder inside a space or another folder."""
+    Single path component (e.g., 'Analytics') creates a space.
+    Nested path (e.g., 'Analytics.reports') creates a folder.
+    """
     client = _get_client()
     _run_command(create_folder(client, path), client, fmt)
 
@@ -167,10 +159,7 @@ def cli_delete(
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted without deleting"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Delete a catalog entity (space, folder, view, etc.). Cannot be undone.
-
-    Use --dry-run to see the entity metadata before deleting.
-    """
+    """Delete a catalog entity (space, folder, view, etc.). Cannot be undone."""
     client = _get_client()
     if dry_run:
         _run_command(get_entity(client, path), client, fmt)
@@ -178,11 +167,11 @@ def cli_delete(
     _run_command(delete_entity(client, path), client, fmt)
 
 
-@app.command("search")
-def cli_search(
-    term: str = typer.Argument(help="Search term (matches table names, view names, source names)"),
+@app.command("grants")
+def cli_grants(
+    path: str = typer.Argument(help="Dot-separated entity path"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Full-text search across all catalog entities (tables, views, sources)."""
+    """Show ACL grants on a catalog entity."""
     client = _get_client()
-    _run_command(search_catalog(client, term), client, fmt)
+    _run_command(grants(client, path), client, fmt)

@@ -102,8 +102,8 @@ def cli_get(
     _run_command(get_grants(client, scope, scope_id, grantee_type, grantee_id), client, fmt)
 
 
-@app.command("set")
-def cli_set(
+@app.command("update")
+def cli_update(
     scope: str = typer.Argument(help="Resource scope (projects, orgs, clouds)"),
     scope_id: str = typer.Argument(help="Resource ID"),
     grantee_type: str = typer.Argument(help="Grantee type (user or role)"),
@@ -120,8 +120,8 @@ def cli_set(
     _run_command(set_grants(client, scope, scope_id, grantee_type, grantee_id, priv_list), client, fmt)
 
 
-@app.command("remove")
-def cli_remove(
+@app.command("delete")
+def cli_delete(
     scope: str = typer.Argument(help="Resource scope (projects, orgs, clouds)"),
     scope_id: str = typer.Argument(help="Resource ID"),
     grantee_type: str = typer.Argument(help="Grantee type (user or role)"),

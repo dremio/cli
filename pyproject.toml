@@ -1,7 +1,7 @@
 [project]
 name = "drs"
 version = "0.1.0"
-description = "Developer CLI for Dremio — query, catalog, schema, reflections, jobs, and access management"
+description = "Developer CLI for Dremio Cloud"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-drs = "drs.cli:app"
+dremio = "drs.cli:app"
 
 [build-system]
 requires = ["hatchling"]

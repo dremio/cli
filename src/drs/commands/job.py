@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""drs jobs — list and inspect query jobs."""
+"""dremio job — list and inspect query jobs."""
 
 from __future__ import annotations
 
@@ -97,13 +97,9 @@ def cli_list(
     status_filter: Optional[str] = typer.Option(None, "--status", "-s", help="Filter by job state: COMPLETED, FAILED, RUNNING, CANCELED, PLANNING, ENQUEUED"),
     limit: int = typer.Option(25, "--limit", "-n", help="Max jobs to return (default 25)"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
-    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include in output"),
+    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include"),
 ) -> None:
-    """List recent query jobs from sys.project.jobs.
-
-    Shows job ID, user, query type, state, and timing. Results are ordered
-    by start time (most recent first).
-    """
+    """List recent query jobs from sys.project.jobs."""
     client = _get_client()
     _run_command(list_jobs(client, status_filter=status_filter, limit=limit), client, fmt, fields=fields)
 
@@ -112,7 +108,7 @@ def cli_list(
 def cli_get(
     job_id: str = typer.Argument(help="Job ID (UUID)"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
-    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include in output"),
+    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include"),
 ) -> None:
     """Get detailed status and metadata for a specific job."""
     client = _get_client()
@@ -121,13 +117,9 @@ def cli_get(
 
 @app.command("profile")
 def cli_profile(
-    job_id: str = typer.Argument(help="Job ID (UUID) to get execution profile for"),
+    job_id: str = typer.Argument(help="Job ID (UUID)"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Show execution profile for a completed job.
-
-    Queries sys.project.jobs for cost estimates, scan stats,
-    timing breakdown, and acceleration info. Useful for diagnosing slow queries.
-    """
+    """Show execution profile for a completed job."""
     client = _get_client()
     _run_command(profile(client, job_id), client, fmt)

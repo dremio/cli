@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""drs schema — describe tables, trace lineage, sample data."""
+"""dremio schema — describe tables, trace lineage, sample data."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ from drs.commands.query import run_query
 from drs.output import OutputFormat, output, error
 from drs.utils import handle_api_error, parse_path, quote_path_sql
 
-app = typer.Typer(help="Describe schemas, trace lineage, and sample data.")
+app = typer.Typer(help="Describe table schemas, trace lineage, and sample data.")
 
 
 async def describe(client: DremioClient, path: str) -> dict:
@@ -59,96 +59,6 @@ async def lineage(client: DremioClient, path: str) -> dict:
     except httpx.HTTPStatusError as exc:
         raise handle_api_error(exc) from exc
     return {"path": path, "id": entity_id, "graph": graph}
-
-
-async def wiki(client: DremioClient, path: str) -> dict:
-    """Get wiki description and tags for an entity."""
-    parts = parse_path(path)
-    try:
-        entity = await client.get_catalog_by_path(parts)
-    except httpx.HTTPStatusError as exc:
-        raise handle_api_error(exc) from exc
-    entity_id = entity["id"]
-
-    wiki_text = ""
-    tags_list: list[str] = []
-    try:
-        wiki_data = await client.get_wiki(entity_id)
-        wiki_text = wiki_data.get("text", "")
-    except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 404:
-            pass  # no wiki exists for this entity
-        else:
-            raise handle_api_error(exc) from exc
-    try:
-        tags_data = await client.get_tags(entity_id)
-        tags_list = tags_data.get("tags", [])
-    except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 404:
-            pass  # no tags exist for this entity
-        else:
-            raise handle_api_error(exc) from exc
-
-    return {
-        "path": path,
-        "id": entity_id,
-        "wiki": wiki_text,
-        "tags": tags_list,
-    }
-
-
-async def set_wiki(client: DremioClient, path: str, text: str) -> dict:
-    """Set wiki description text for an entity."""
-    parts = parse_path(path)
-    try:
-        entity = await client.get_catalog_by_path(parts)
-    except httpx.HTTPStatusError as exc:
-        raise handle_api_error(exc) from exc
-    entity_id = entity["id"]
-
-    # Try to get existing wiki for version number (optimistic concurrency)
-    version = None
-    try:
-        existing = await client.get_wiki(entity_id)
-        version = existing.get("version")
-    except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 404:
-            pass  # no wiki exists yet
-        else:
-            raise handle_api_error(exc) from exc
-
-    try:
-        result = await client.set_wiki(entity_id, text, version=version)
-    except httpx.HTTPStatusError as exc:
-        raise handle_api_error(exc) from exc
-    return {"path": path, "id": entity_id, "wiki": text, "result": result}
-
-
-async def set_tags(client: DremioClient, path: str, tags: list[str]) -> dict:
-    """Set tags for an entity."""
-    parts = parse_path(path)
-    try:
-        entity = await client.get_catalog_by_path(parts)
-    except httpx.HTTPStatusError as exc:
-        raise handle_api_error(exc) from exc
-    entity_id = entity["id"]
-
-    # Try to get existing tags for version number
-    version = None
-    try:
-        existing = await client.get_tags(entity_id)
-        version = existing.get("version")
-    except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 404:
-            pass  # no tags exist yet
-        else:
-            raise handle_api_error(exc) from exc
-
-    try:
-        result = await client.set_tags(entity_id, tags, version=version)
-    except httpx.HTTPStatusError as exc:
-        raise handle_api_error(exc) from exc
-    return {"path": path, "id": entity_id, "tags": tags, "result": result}
 
 
 async def sample(client: DremioClient, path: str, limit: int = 10) -> dict:
@@ -205,39 +115,6 @@ def cli_lineage(
     """Show upstream and downstream dependency graph for a table or view."""
     client = _get_client()
     _run_command(lineage(client, path), client, fmt)
-
-
-@app.command("wiki")
-def cli_wiki(
-    path: str = typer.Argument(help='Dot-separated entity path'),
-    fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
-) -> None:
-    """Show wiki description and tags for a catalog entity."""
-    client = _get_client()
-    _run_command(wiki(client, path), client, fmt)
-
-
-@app.command("set-wiki")
-def cli_set_wiki(
-    path: str = typer.Argument(help='Dot-separated entity path'),
-    text: str = typer.Argument(help='Wiki text to set (Markdown supported)'),
-    fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
-) -> None:
-    """Set or update the wiki description for a catalog entity."""
-    client = _get_client()
-    _run_command(set_wiki(client, path, text), client, fmt)
-
-
-@app.command("set-tags")
-def cli_set_tags(
-    path: str = typer.Argument(help='Dot-separated entity path'),
-    tags: str = typer.Argument(help='Comma-separated list of tags (e.g., "pii,finance,daily")'),
-    fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
-) -> None:
-    """Set tags on a catalog entity. Replaces all existing tags."""
-    client = _get_client()
-    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
-    _run_command(set_tags(client, path, tag_list), client, fmt)
 
 
 @app.command("sample")

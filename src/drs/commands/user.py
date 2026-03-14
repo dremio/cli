@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""drs user — manage Dremio Cloud users."""
+"""dremio user — manage Dremio Cloud users."""
 
 from __future__ import annotations
 
@@ -50,8 +50,8 @@ async def get_user(client: DremioClient, identifier: str) -> dict:
         raise handle_api_error(exc) from exc
 
 
-async def invite_user(client: DremioClient, email: str, role_id: str | None = None) -> dict:
-    """Invite a user by email."""
+async def create_user(client: DremioClient, email: str, role_id: str | None = None) -> dict:
+    """Create (invite) a user by email."""
     body: dict = {"email": email}
     if role_id:
         body["roleId"] = role_id
@@ -59,6 +59,35 @@ async def invite_user(client: DremioClient, email: str, role_id: str | None = No
         return await client.invite_user(body)
     except httpx.HTTPStatusError as exc:
         raise handle_api_error(exc) from exc
+
+
+async def whoami(client: DremioClient) -> dict:
+    """Get info about the current user."""
+    try:
+        return await client.list_users(max_results=1)
+    except httpx.HTTPStatusError as exc:
+        raise handle_api_error(exc) from exc
+
+
+async def audit(client: DremioClient, username: str) -> dict:
+    """Audit a user's effective permissions: user -> roles."""
+    try:
+        user = await client.get_user_by_name(username)
+    except httpx.HTTPStatusError as exc:
+        raise handle_api_error(exc) from exc
+    user_roles = user.get("roles", [])
+
+    role_grants: list[dict] = []
+    for role in user_roles:
+        role_id = role.get("id", role) if isinstance(role, dict) else role
+        role_name = role.get("name", role_id) if isinstance(role, dict) else role_id
+        role_grants.append({"role_id": role_id, "role_name": role_name})
+
+    return {
+        "username": username,
+        "user_id": user.get("id"),
+        "roles": role_grants,
+    }
 
 
 async def update_user(client: DremioClient, user_id: str, name: str | None = None) -> dict:
@@ -134,15 +163,15 @@ def cli_get(
     _run_command(get_user(client, identifier), client, fmt, fields=fields)
 
 
-@app.command("invite")
-def cli_invite(
+@app.command("create")
+def cli_create(
     email: str = typer.Argument(help="Email address to invite"),
-    role_id: str = typer.Option(None, "--role-id", help="Role ID to assign to the invited user"),
+    role_id: str = typer.Option(None, "--role-id", help="Role ID to assign to the new user"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Invite a new user by email address."""
+    """Create (invite) a new user by email address."""
     client = _get_client()
-    _run_command(invite_user(client, email, role_id=role_id), client, fmt)
+    _run_command(create_user(client, email, role_id=role_id), client, fmt)
 
 
 @app.command("update")
@@ -168,3 +197,22 @@ def cli_delete(
         _run_command(get_user(client, user_id), client, fmt)
         return
     _run_command(delete_user(client, user_id), client, fmt)
+
+
+@app.command("whoami")
+def cli_whoami(
+    fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
+) -> None:
+    """Show current authenticated user info (best-effort)."""
+    client = _get_client()
+    _run_command(whoami(client), client, fmt)
+
+
+@app.command("audit")
+def cli_audit(
+    username: str = typer.Argument(help="Username to look up and audit"),
+    fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
+) -> None:
+    """Audit a user's roles and effective permissions."""
+    client = _get_client()
+    _run_command(audit(client, username), client, fmt)
