@@ -17,11 +17,19 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Any
 
 import httpx
 
 from drs.auth import DrsConfig
+
+logger = logging.getLogger(__name__)
+
+_MAX_RETRIES = 3
+_RETRY_BACKOFF = (1.0, 2.0, 4.0)
+_RETRYABLE_STATUS_CODES = {429, 502, 503, 504}
 
 
 class DremioClient:
@@ -29,6 +37,9 @@ class DremioClient:
 
     This is the ONLY file that makes HTTP calls. All commands and MCP tools
     call methods on this class.
+
+    Transient failures (timeouts, 429, 502, 503, 504) are retried up to 3
+    times with exponential backoff (1s, 2s, 4s).
     """
 
     def __init__(self, config: DrsConfig) -> None:
@@ -57,20 +68,55 @@ class DremioClient:
     def _v1(self, path: str) -> str:
         return f"{self.config.uri}/v1{path}"
 
-    # -- HTTP helpers --
+    # -- HTTP helpers with retry --
+
+    async def _request_with_retry(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
+        """Execute an HTTP request with retry on transient errors."""
+        last_exc: Exception | None = None
+        for attempt in range(_MAX_RETRIES):
+            try:
+                resp = await self._client.request(method, url, **kwargs)
+                if resp.status_code in _RETRYABLE_STATUS_CODES and attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BACKOFF[attempt]
+                    logger.warning(
+                        "Retryable HTTP %d on %s %s — retrying in %.1fs (attempt %d/%d)",
+                        resp.status_code, method, url, delay, attempt + 1, _MAX_RETRIES,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                return resp
+            except httpx.TimeoutException as exc:
+                last_exc = exc
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BACKOFF[attempt]
+                    logger.warning(
+                        "Timeout on %s %s — retrying in %.1fs (attempt %d/%d)",
+                        method, url, delay, attempt + 1, _MAX_RETRIES,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                raise
+        raise last_exc  # type: ignore[misc]
 
     async def _get(self, url: str, params: dict | None = None) -> Any:
-        resp = await self._client.get(url, params=params)
+        resp = await self._request_with_retry("GET", url, params=params)
         resp.raise_for_status()
         return resp.json()
 
     async def _post(self, url: str, json: dict | None = None) -> Any:
-        resp = await self._client.post(url, json=json)
+        resp = await self._request_with_retry("POST", url, json=json)
         resp.raise_for_status()
         return resp.json()
 
-    async def _delete(self, url: str) -> Any:
-        resp = await self._client.delete(url)
+    async def _put(self, url: str, json: dict | None = None) -> Any:
+        resp = await self._request_with_retry("PUT", url, json=json)
+        resp.raise_for_status()
+        if resp.content:
+            return resp.json()
+        return {"status": "ok"}
+
+    async def _delete(self, url: str, params: dict | None = None) -> Any:
+        resp = await self._request_with_retry("DELETE", url, params=params)
         resp.raise_for_status()
         if resp.content:
             return resp.json()
@@ -122,6 +168,19 @@ class DremioClient:
             body["filter"] = filter_
         return await self._post(self._v0("/search"), json=body)
 
+    async def create_catalog_entity(self, body: dict) -> dict:
+        """Create a catalog entity (space, folder, etc.). POST /catalog."""
+        return await self._post(self._v3("/catalog"), json=body)
+
+    async def update_catalog_entity(self, entity_id: str, body: dict) -> dict:
+        """Update a catalog entity. PUT /catalog/{id}."""
+        return await self._put(self._v3(f"/catalog/{entity_id}"), json=body)
+
+    async def delete_catalog_entity(self, entity_id: str, tag: str | None = None) -> dict:
+        """Delete a catalog entity. DELETE /catalog/{id}."""
+        params = {"tag": tag} if tag else None
+        return await self._delete(self._v3(f"/catalog/{entity_id}"), params=params)
+
     async def get_lineage(self, entity_id: str) -> dict:
         return await self._get(self._v3(f"/catalog/{entity_id}/graph"))
 
@@ -131,6 +190,20 @@ class DremioClient:
     async def get_tags(self, entity_id: str) -> dict:
         return await self._get(self._v3(f"/catalog/{entity_id}/collaboration/tag"))
 
+    async def set_wiki(self, entity_id: str, text: str, version: int | None = None) -> dict:
+        """Set wiki text for a catalog entity. POST /catalog/{id}/collaboration/wiki."""
+        body: dict[str, Any] = {"text": text}
+        if version is not None:
+            body["version"] = version
+        return await self._post(self._v3(f"/catalog/{entity_id}/collaboration/wiki"), json=body)
+
+    async def set_tags(self, entity_id: str, tags: list[str], version: int | None = None) -> dict:
+        """Set tags for a catalog entity. POST /catalog/{id}/collaboration/tag."""
+        body: dict[str, Any] = {"tags": tags}
+        if version is not None:
+            body["version"] = version
+        return await self._post(self._v3(f"/catalog/{entity_id}/collaboration/tag"), json=body)
+
     # -- Reflections (v3) --
 
     async def get_reflection(self, reflection_id: str) -> dict:
@@ -139,8 +212,35 @@ class DremioClient:
     async def refresh_reflection(self, reflection_id: str) -> dict:
         return await self._post(self._v3(f"/reflection/{reflection_id}/refresh"))
 
+    async def create_reflection(self, body: dict) -> dict:
+        """Create a reflection. POST /reflection."""
+        return await self._post(self._v3("/reflection"), json=body)
+
     async def delete_reflection(self, reflection_id: str) -> dict:
         return await self._delete(self._v3(f"/reflection/{reflection_id}"))
+
+    # -- Engines (v0) --
+
+    async def list_engines(self) -> dict:
+        return await self._get(self._v0("/engines"))
+
+    async def get_engine(self, engine_id: str) -> dict:
+        return await self._get(self._v0(f"/engines/{engine_id}"))
+
+    async def create_engine(self, body: dict) -> dict:
+        return await self._post(self._v0("/engines"), json=body)
+
+    async def update_engine(self, engine_id: str, body: dict) -> dict:
+        return await self._put(self._v0(f"/engines/{engine_id}"), json=body)
+
+    async def delete_engine(self, engine_id: str) -> dict:
+        return await self._delete(self._v0(f"/engines/{engine_id}"))
+
+    async def enable_engine(self, engine_id: str) -> dict:
+        return await self._put(self._v0(f"/engines/{engine_id}/enable"))
+
+    async def disable_engine(self, engine_id: str) -> dict:
+        return await self._put(self._v0(f"/engines/{engine_id}/disable"))
 
     # -- Users & Roles (v1) --
 
@@ -150,13 +250,59 @@ class DremioClient:
     async def get_user_by_name(self, name: str) -> dict:
         return await self._get(self._v1(f"/users/name/{name}"))
 
+    async def get_user(self, user_id: str) -> dict:
+        return await self._get(self._v1(f"/users/{user_id}"))
+
+    async def invite_user(self, body: dict) -> dict:
+        """Invite a user. POST /v1/users/invite."""
+        return await self._post(self._v1("/users/invite"), json=body)
+
+    async def update_user(self, user_id: str, body: dict) -> dict:
+        return await self._put(self._v1(f"/users/{user_id}"), json=body)
+
+    async def delete_user(self, user_id: str) -> dict:
+        return await self._delete(self._v1(f"/users/{user_id}"))
+
     async def list_roles(self, max_results: int = 100) -> dict:
         return await self._get(self._v1("/roles"), params={"maxResults": max_results})
+
+    async def get_role(self, role_id: str) -> dict:
+        return await self._get(self._v1(f"/roles/{role_id}"))
+
+    async def get_role_by_name(self, name: str) -> dict:
+        return await self._get(self._v1(f"/roles/name/{name}"))
+
+    async def create_role(self, body: dict) -> dict:
+        return await self._post(self._v1("/roles"), json=body)
+
+    async def update_role(self, role_id: str, body: dict) -> dict:
+        return await self._put(self._v1(f"/roles/{role_id}"), json=body)
+
+    async def delete_role(self, role_id: str) -> dict:
+        return await self._delete(self._v1(f"/roles/{role_id}"))
+
+    # -- Grants (v1) --
 
     async def get_grants(
         self, scope: str, scope_id: str, grantee_type: str, grantee_id: str
     ) -> dict:
-        """Get grants. scope is 'catalog' or 'org', grantee_type is 'user' or 'role'."""
+        """Get grants. scope is 'projects', 'orgs', 'clouds', etc."""
         return await self._get(
+            self._v1(f"/{scope}/{scope_id}/grants/{grantee_type}/{grantee_id}")
+        )
+
+    async def set_grants(
+        self, scope: str, scope_id: str, grantee_type: str, grantee_id: str, body: dict
+    ) -> dict:
+        """Set grants. PUT /v1/{scope}/{scopeId}/grants/{granteeType}/{granteeId}."""
+        return await self._put(
+            self._v1(f"/{scope}/{scope_id}/grants/{grantee_type}/{grantee_id}"), json=body
+        )
+
+    async def delete_grants(
+        self, scope: str, scope_id: str, grantee_type: str, grantee_id: str
+    ) -> dict:
+        """Remove grants. DELETE /v1/{scope}/{scopeId}/grants/{granteeType}/{granteeId}."""
+        return await self._delete(
             self._v1(f"/{scope}/{scope_id}/grants/{grantee_type}/{grantee_id}")
         )

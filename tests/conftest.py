@@ -40,5 +40,6 @@ def mock_client(config: DrsConfig) -> DremioClient:
     client = DremioClient(config)
     client._get = AsyncMock()
     client._post = AsyncMock()
+    client._put = AsyncMock()
     client._delete = AsyncMock()
     return client

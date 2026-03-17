@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""drs catalog — browse and search the Dremio catalog."""
+"""dremio wiki — get and update wiki descriptions on catalog entities."""
 
 from __future__ import annotations
 
@@ -26,34 +26,60 @@ from drs.client import DremioClient
 from drs.output import OutputFormat, output, error
 from drs.utils import handle_api_error, parse_path
 
-app = typer.Typer(help="Browse and search the Dremio catalog.")
+app = typer.Typer(help="Get and update wiki descriptions on catalog entities.")
 
 
-async def list_catalog(client: DremioClient) -> dict:
-    """List top-level catalog entities (sources, spaces, home)."""
-    try:
-        root = await client.get_catalog_entity("")
-    except httpx.HTTPStatusError as exc:
-        raise handle_api_error(exc) from exc
-    children = root.get("data", root.get("children", []))
-    return {"entities": children}
-
-
-async def get_entity(client: DremioClient, path: str) -> dict:
-    """Get a catalog entity by dot-separated path."""
+async def get_wiki(client: DremioClient, path: str) -> dict:
+    """Get wiki description for an entity."""
     parts = parse_path(path)
     try:
-        return await client.get_catalog_by_path(parts)
+        entity = await client.get_catalog_by_path(parts)
     except httpx.HTTPStatusError as exc:
         raise handle_api_error(exc) from exc
+    entity_id = entity["id"]
 
-
-async def search_catalog(client: DremioClient, term: str) -> dict:
-    """Full-text search for catalog entities."""
+    wiki_text = ""
     try:
-        return await client.search(term)
+        wiki_data = await client.get_wiki(entity_id)
+        wiki_text = wiki_data.get("text", "")
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            pass  # no wiki exists for this entity
+        else:
+            raise handle_api_error(exc) from exc
+
+    return {
+        "path": path,
+        "id": entity_id,
+        "wiki": wiki_text,
+    }
+
+
+async def update_wiki(client: DremioClient, path: str, text: str) -> dict:
+    """Set or update wiki description text for an entity."""
+    parts = parse_path(path)
+    try:
+        entity = await client.get_catalog_by_path(parts)
     except httpx.HTTPStatusError as exc:
         raise handle_api_error(exc) from exc
+    entity_id = entity["id"]
+
+    # Try to get existing wiki for version number (optimistic concurrency)
+    version = None
+    try:
+        existing = await client.get_wiki(entity_id)
+        version = existing.get("version")
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            pass  # no wiki exists yet
+        else:
+            raise handle_api_error(exc) from exc
+
+    try:
+        result = await client.set_wiki(entity_id, text, version=version)
+    except httpx.HTTPStatusError as exc:
+        raise handle_api_error(exc) from exc
+    return {"path": path, "id": entity_id, "wiki": text, "result": result}
 
 
 # -- CLI wrappers --
@@ -84,36 +110,22 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
     output(result, fmt, fields=fields)
 
 
-@app.command("list")
-def cli_list(
-    fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
-    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include in output"),
-) -> None:
-    """List top-level catalog entities: sources, spaces, and home folder."""
-    client = _get_client()
-    _run_command(list_catalog(client), client, fmt, fields=fields)
-
-
 @app.command("get")
 def cli_get(
-    path: str = typer.Argument(help='Dot-separated entity path (e.g., myspace.folder.table). Quote components with dots: \'"My Source".table\''),
-    fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
-    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include in output"),
-) -> None:
-    """Get full metadata for a catalog entity by path.
-
-    Returns entity type, ID, children (for containers), fields (for datasets),
-    and access control information.
-    """
-    client = _get_client()
-    _run_command(get_entity(client, path), client, fmt, fields=fields)
-
-
-@app.command("search")
-def cli_search(
-    term: str = typer.Argument(help="Search term (matches table names, view names, source names)"),
+    path: str = typer.Argument(help='Dot-separated entity path'),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Full-text search across all catalog entities (tables, views, sources)."""
+    """Get wiki description for a catalog entity."""
     client = _get_client()
-    _run_command(search_catalog(client, term), client, fmt)
+    _run_command(get_wiki(client, path), client, fmt)
+
+
+@app.command("update")
+def cli_update(
+    path: str = typer.Argument(help='Dot-separated entity path'),
+    text: str = typer.Argument(help='Wiki text to set (Markdown supported)'),
+    fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
+) -> None:
+    """Set or update the wiki description for a catalog entity."""
+    client = _get_client()
+    _run_command(update_wiki(client, path, text), client, fmt)

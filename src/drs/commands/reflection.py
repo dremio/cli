@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""drs reflect — manage Dremio reflections (materialized views)."""
+"""dremio reflection — manage Dremio reflections (materialized views)."""
 
 from __future__ import annotations
 
@@ -30,6 +30,34 @@ from drs.utils import handle_api_error, parse_path
 app = typer.Typer(help="Manage reflections (materialized views).")
 
 
+async def create(client: DremioClient, path: str, rtype: str, display_fields: list[str] | None = None) -> dict:
+    """Create a reflection on a dataset."""
+    parts = parse_path(path)
+    try:
+        entity = await client.get_catalog_by_path(parts)
+    except httpx.HTTPStatusError as exc:
+        raise handle_api_error(exc) from exc
+
+    dataset_id = entity["id"]
+    body: dict = {
+        "type": rtype.upper(),
+        "datasetId": dataset_id,
+    }
+
+    fields = entity.get("fields", [])
+    if rtype.lower() == "raw":
+        display = display_fields or [f["name"] for f in fields]
+        body["displayFields"] = [{"name": n} for n in display]
+    elif rtype.lower() == "aggregation":
+        if display_fields:
+            body["dimensionFields"] = [{"name": n, "granularity": "DATE"} for n in display_fields]
+
+    try:
+        return await client.create_reflection(body)
+    except httpx.HTTPStatusError as exc:
+        raise handle_api_error(exc) from exc
+
+
 async def list_reflections(client: DremioClient, path: str) -> dict:
     """List reflections on a dataset via sys.project.reflections."""
     parts = parse_path(path)
@@ -42,7 +70,8 @@ async def list_reflections(client: DremioClient, path: str) -> dict:
     return await run_query(client, sql)
 
 
-async def status(client: DremioClient, reflection_id: str) -> dict:
+async def get_reflection(client: DremioClient, reflection_id: str) -> dict:
+    """Get detailed status of a reflection."""
     try:
         return await client.get_reflection(reflection_id)
     except httpx.HTTPStatusError as exc:
@@ -50,13 +79,15 @@ async def status(client: DremioClient, reflection_id: str) -> dict:
 
 
 async def refresh(client: DremioClient, reflection_id: str) -> dict:
+    """Trigger an immediate refresh of a reflection."""
     try:
         return await client.refresh_reflection(reflection_id)
     except httpx.HTTPStatusError as exc:
         raise handle_api_error(exc) from exc
 
 
-async def drop(client: DremioClient, reflection_id: str) -> dict:
+async def delete(client: DremioClient, reflection_id: str) -> dict:
+    """Delete a reflection."""
     try:
         return await client.delete_reflection(reflection_id)
     except httpx.HTTPStatusError as exc:
@@ -91,64 +122,64 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
     output(result, fmt, fields=fields)
 
 
-@app.command("list")
-def cli_list(
-    path: str = typer.Argument(help="Dot-separated dataset path to list reflections for"),
+@app.command("create")
+def cli_create(
+    path: str = typer.Argument(help="Dot-separated dataset path to create a reflection on"),
+    rtype: str = typer.Option("raw", "--type", "-t", help="Reflection type: raw or aggregation"),
+    fields_list: str = typer.Option(None, "--fields", "-f", help="Comma-separated field names to include"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """List all reflections defined on a dataset.
+    """Create a new reflection on a dataset."""
+    client = _get_client()
+    display = [f.strip() for f in fields_list.split(",") if f.strip()] if fields_list else None
+    _run_command(create(client, path, rtype, display_fields=display), client, fmt)
 
-    Queries sys.project.reflections filtered by the dataset ID. Shows reflection type,
-    status, and configuration.
-    """
+
+@app.command("list")
+def cli_list(
+    path: str = typer.Argument(help="Dot-separated dataset path"),
+    fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
+) -> None:
+    """List all reflections defined on a dataset."""
     client = _get_client()
     _run_command(list_reflections(client, path), client, fmt)
 
 
-@app.command("status")
-def cli_status(
-    reflection_id: str = typer.Argument(help="Reflection ID (get IDs from 'drs reflect list')"),
+@app.command("get")
+def cli_get(
+    reflection_id: str = typer.Argument(help="Reflection ID"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Show detailed status of a reflection.
-
-    Includes freshness, staleness, size, last refresh time, and configuration.
-    """
+    """Get detailed status of a reflection."""
     client = _get_client()
-    _run_command(status(client, reflection_id), client, fmt)
+    _run_command(get_reflection(client, reflection_id), client, fmt)
 
 
 @app.command("refresh")
 def cli_refresh(
     reflection_id: str = typer.Argument(help="Reflection ID to refresh"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Validate the request without executing it"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Validate without executing"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Trigger an immediate refresh of a reflection.
-
-    Use --dry-run to validate the reflection ID without triggering the refresh.
-    """
+    """Trigger an immediate refresh of a reflection."""
     if dry_run:
         client = _get_client()
-        _run_command(status(client, reflection_id), client, fmt)
+        _run_command(get_reflection(client, reflection_id), client, fmt)
         return
     client = _get_client()
     _run_command(refresh(client, reflection_id), client, fmt)
 
 
-@app.command("drop")
-def cli_drop(
+@app.command("delete")
+def cli_delete(
     reflection_id: str = typer.Argument(help="Reflection ID to delete"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Validate the request without executing it"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Validate without executing"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Permanently delete a reflection. Cannot be undone.
-
-    Use --dry-run to verify the reflection exists before deleting.
-    """
+    """Permanently delete a reflection. Cannot be undone."""
     if dry_run:
         client = _get_client()
-        _run_command(status(client, reflection_id), client, fmt)
+        _run_command(get_reflection(client, reflection_id), client, fmt)
         return
     client = _get_client()
-    _run_command(drop(client, reflection_id), client, fmt)
+    _run_command(delete(client, reflection_id), client, fmt)

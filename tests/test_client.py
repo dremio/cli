@@ -76,6 +76,24 @@ class TestCatalogURL:
         assert client._v3("/catalog/abc-123") == "https://api.dremio.cloud/v0/projects/proj-123/catalog/abc-123"
 
 
+class TestEngineURLs:
+    def test_engines_list_url(self, client: DremioClient) -> None:
+        assert client._v0("/engines") == "https://api.dremio.cloud/v0/projects/proj-123/engines"
+
+    def test_engine_enable_url(self, client: DremioClient) -> None:
+        assert client._v0("/engines/eng-1/enable") == "https://api.dremio.cloud/v0/projects/proj-123/engines/eng-1/enable"
+
+
+class TestGrantURLs:
+    def test_project_grant_url(self, client: DremioClient) -> None:
+        url = client._v1("/projects/proj-1/grants/role/role-1")
+        assert url == "https://api.dremio.cloud/v1/projects/proj-1/grants/role/role-1"
+
+    def test_org_grant_url(self, client: DremioClient) -> None:
+        url = client._v1("/orgs/org-1/grants/user/user-1")
+        assert url == "https://api.dremio.cloud/v1/orgs/org-1/grants/user/user-1"
+
+
 class TestClientHeaders:
     def test_auth_header(self, client: DremioClient) -> None:
         assert client._client.headers["authorization"] == "Bearer test-token"
