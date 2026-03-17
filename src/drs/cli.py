@@ -28,7 +28,7 @@ import typer
 
 from drs.auth import DrsConfig, load_config
 from drs.client import DremioClient
-from drs.commands import query, schema, engine, user, role, grant
+from drs.commands import query, schema, engine, user, role, grant, project
 from drs.commands import folder, reflection, wiki, tag, job
 
 app = typer.Typer(
@@ -49,6 +49,7 @@ app.add_typer(engine.app, name="engine")
 app.add_typer(user.app, name="user")
 app.add_typer(role.app, name="role")
 app.add_typer(grant.app, name="grant")
+app.add_typer(project.app, name="project")
 
 # Global state for config
 _config: DrsConfig | None = None

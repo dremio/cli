@@ -502,6 +502,61 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
 
+    # -- Project --
+    "project.list": {
+        "group": "project", "command": "list",
+        "description": "List all projects in the organization.",
+        "mechanism": "REST",
+        "endpoints": ["GET /v0/projects"],
+        "parameters": [
+            {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
+            {"name": "fields", "type": "string", "required": False},
+        ],
+    },
+    "project.get": {
+        "group": "project", "command": "get",
+        "description": "Get details for a specific project.",
+        "mechanism": "REST",
+        "endpoints": ["GET /v0/projects/{id}"],
+        "parameters": [
+            {"name": "project_id", "type": "string", "required": True, "positional": True, "format": "uuid"},
+            {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
+            {"name": "fields", "type": "string", "required": False},
+        ],
+    },
+    "project.create": {
+        "group": "project", "command": "create",
+        "description": "Create a new project. Automatically provisions a default 2XS engine.",
+        "mechanism": "REST", "mutating": True,
+        "endpoints": ["POST /v0/projects"],
+        "parameters": [
+            {"name": "name", "type": "string", "required": True, "positional": True},
+            {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
+        ],
+    },
+    "project.update": {
+        "group": "project", "command": "update",
+        "description": "Update project attributes (e.g., name).",
+        "mechanism": "REST", "mutating": True,
+        "endpoints": ["GET /v0/projects/{id}", "PUT /v0/projects/{id}"],
+        "parameters": [
+            {"name": "project_id", "type": "string", "required": True, "positional": True, "format": "uuid"},
+            {"name": "name", "type": "string", "required": False, "flag": "--name"},
+            {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
+        ],
+    },
+    "project.delete": {
+        "group": "project", "command": "delete",
+        "description": "Delete a project. Cannot delete the sole project in an organization.",
+        "mechanism": "REST", "mutating": True,
+        "endpoints": ["DELETE /v0/projects/{id}"],
+        "parameters": [
+            {"name": "project_id", "type": "string", "required": True, "positional": True, "format": "uuid"},
+            {"name": "dry_run", "type": "boolean", "required": False, "default": False},
+            {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
+        ],
+    },
+
     # -- Grant --
     "grant.get": {
         "group": "grant", "command": "get",

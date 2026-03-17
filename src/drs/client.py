@@ -122,6 +122,27 @@ class DremioClient:
             return resp.json()
         return {"status": "ok"}
 
+    # -- Projects (v0, org-scoped) --
+
+    def _v0_org(self, path: str) -> str:
+        """Org-scoped URL: /v0/... (no project ID)."""
+        return f"{self.config.uri}/v0{path}"
+
+    async def list_projects(self) -> dict:
+        return await self._get(self._v0_org("/projects"))
+
+    async def get_project(self, project_id: str) -> dict:
+        return await self._get(self._v0_org(f"/projects/{project_id}"))
+
+    async def create_project(self, body: dict) -> dict:
+        return await self._post(self._v0_org("/projects"), json=body)
+
+    async def update_project(self, project_id: str, body: dict) -> dict:
+        return await self._put(self._v0_org(f"/projects/{project_id}"), json=body)
+
+    async def delete_project(self, project_id: str) -> dict:
+        return await self._delete(self._v0_org(f"/projects/{project_id}"))
+
     # -- SQL / Jobs (v0) --
 
     async def submit_sql(self, sql: str, context: list[str] | None = None) -> dict:
