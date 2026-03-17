@@ -17,11 +17,19 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Any
 
 import httpx
 
 from drs.auth import DrsConfig
+
+logger = logging.getLogger(__name__)
+
+_MAX_RETRIES = 3
+_RETRY_BACKOFF = (1.0, 2.0, 4.0)
+_RETRYABLE_STATUS_CODES = {429, 502, 503, 504}
 
 
 class DremioClient:
@@ -29,6 +37,9 @@ class DremioClient:
 
     This is the ONLY file that makes HTTP calls. All commands and MCP tools
     call methods on this class.
+
+    Transient failures (timeouts, 429, 502, 503, 504) are retried up to 3
+    times with exponential backoff (1s, 2s, 4s).
     """
 
     def __init__(self, config: DrsConfig) -> None:
@@ -57,27 +68,55 @@ class DremioClient:
     def _v1(self, path: str) -> str:
         return f"{self.config.uri}/v1{path}"
 
-    # -- HTTP helpers --
+    # -- HTTP helpers with retry --
+
+    async def _request_with_retry(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
+        """Execute an HTTP request with retry on transient errors."""
+        last_exc: Exception | None = None
+        for attempt in range(_MAX_RETRIES):
+            try:
+                resp = await self._client.request(method, url, **kwargs)
+                if resp.status_code in _RETRYABLE_STATUS_CODES and attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BACKOFF[attempt]
+                    logger.warning(
+                        "Retryable HTTP %d on %s %s — retrying in %.1fs (attempt %d/%d)",
+                        resp.status_code, method, url, delay, attempt + 1, _MAX_RETRIES,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                return resp
+            except httpx.TimeoutException as exc:
+                last_exc = exc
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BACKOFF[attempt]
+                    logger.warning(
+                        "Timeout on %s %s — retrying in %.1fs (attempt %d/%d)",
+                        method, url, delay, attempt + 1, _MAX_RETRIES,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                raise
+        raise last_exc  # type: ignore[misc]
 
     async def _get(self, url: str, params: dict | None = None) -> Any:
-        resp = await self._client.get(url, params=params)
+        resp = await self._request_with_retry("GET", url, params=params)
         resp.raise_for_status()
         return resp.json()
 
     async def _post(self, url: str, json: dict | None = None) -> Any:
-        resp = await self._client.post(url, json=json)
+        resp = await self._request_with_retry("POST", url, json=json)
         resp.raise_for_status()
         return resp.json()
 
     async def _put(self, url: str, json: dict | None = None) -> Any:
-        resp = await self._client.put(url, json=json)
+        resp = await self._request_with_retry("PUT", url, json=json)
         resp.raise_for_status()
         if resp.content:
             return resp.json()
         return {"status": "ok"}
 
     async def _delete(self, url: str, params: dict | None = None) -> Any:
-        resp = await self._client.delete(url, params=params)
+        resp = await self._request_with_retry("DELETE", url, params=params)
         resp.raise_for_status()
         if resp.content:
             return resp.json()
