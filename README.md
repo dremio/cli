@@ -111,6 +111,7 @@ If this returns `{"job_id": "...", "state": "COMPLETED", "rowCount": 1, "rows": 
 | `dremio user` | `list`, `get`, `create`, `delete`, `whoami`, `audit` | Manage org users, check identity, audit permissions |
 | `dremio role` | `list`, `get`, `create`, `update`, `delete` | Full CRUD for organization roles |
 | `dremio grant` | `get`, `update`, `delete` | Manage grants on projects, engines, org resources |
+| `dremio project` | `list`, `get`, `create`, `update`, `delete` | Full CRUD for Dremio Cloud projects |
 | `dremio search` | *(top-level)* | Full-text search across all catalog entities |
 | `dremio describe` | *(top-level)* | Machine-readable schema for any command |
 
@@ -208,6 +209,7 @@ Every Dremio object has consistent CLI commands using standard CRUD verbs (`list
 | **Users** | `user list` | `user get` | `user create` | — | `user delete` |
 | **Roles** | `role list` | `role get` | `role create` | `role update` | `role delete` |
 | **Grants** | `grant get` | `grant get` | `grant update` | `grant update` | `grant delete` |
+| **Projects** | `project list` | `project get` | `project create` | `project update` | `project delete` |
 | **Jobs** | `job list` | `job get/profile` | `query run` | — | `query cancel` |
 
 `folder create` uses SQL under the hood (`CREATE SPACE` for top-level, `CREATE FOLDER` for nested paths). All other mutations use the REST API.
@@ -354,6 +356,7 @@ src/drs/
     user.py        # list, get, create, delete, whoami, audit
     role.py        # list, get, create, update, delete
     grant.py       # get, update, delete
+    project.py     # list, get, create, update, delete
 ```
 
 ## Related projects
