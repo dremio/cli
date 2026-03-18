@@ -29,17 +29,15 @@ Dremio Cloud has a powerful REST API and rich system tables, but no official CLI
 ### 1. Install
 
 ```bash
-# Clone the repo
+# From PyPI (recommended)
+pip install dremio-cli
+
+# Or with uv
+uv tool install dremio-cli
+
+# Or from source (for development)
 git clone https://github.com/dremio/cli.git
 cd cli
-
-# Install as a standalone tool (recommended)
-uv tool install .
-
-# Or with pip
-pip install .
-
-# Or for development (editable install)
 uv sync
 ```
 
