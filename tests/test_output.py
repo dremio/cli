@@ -32,7 +32,7 @@ def test_json_output() -> None:
 def test_csv_output_from_rows() -> None:
     data = {"rows": [{"id": "1", "name": "alice"}, {"id": "2", "name": "bob"}]}
     result = render(data, OutputFormat.csv)
-    lines = [l.strip() for l in result.strip().splitlines()]
+    lines = [line.strip() for line in result.strip().splitlines()]
     assert lines[0] == "id,name"
     assert lines[1] == "1,alice"
 
@@ -40,7 +40,7 @@ def test_csv_output_from_rows() -> None:
 def test_csv_output_from_list() -> None:
     data = [{"a": "1"}, {"a": "2"}]
     result = render(data, OutputFormat.csv)
-    lines = [l.strip() for l in result.strip().splitlines()]
+    lines = [line.strip() for line in result.strip().splitlines()]
     assert lines[0] == "a"
     assert len(lines) == 3
 
@@ -68,6 +68,7 @@ def test_pretty_empty_list() -> None:
 
 def test_output_with_fields_filter(capsys) -> None:
     from drs.output import output
+
     data = {"name": "foo", "id": "123", "extra": "bar"}
     output(data, OutputFormat.json, fields="name,id")
     captured = capsys.readouterr()

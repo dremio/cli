@@ -22,13 +22,13 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-from drs.commands.role import list_roles, get_role, create_role, update_role, delete_role
+from drs.commands.role import create_role, delete_role, get_role, list_roles, update_role
 
 
 @pytest.mark.asyncio
 async def test_list_roles(mock_client) -> None:
     mock_client.list_roles = AsyncMock(return_value={"data": [{"id": "r1", "name": "admin"}]})
-    result = await list_roles(mock_client)
+    await list_roles(mock_client)
     mock_client.list_roles.assert_called_once()
 
 
@@ -48,7 +48,7 @@ async def test_get_role_falls_back_to_id(mock_client) -> None:
         side_effect=httpx.HTTPStatusError("Not Found", request=request, response=response)
     )
     mock_client.get_role = AsyncMock(return_value={"id": "r1", "name": "admin"})
-    result = await get_role(mock_client, "r1")
+    await get_role(mock_client, "r1")
     mock_client.get_role.assert_called_once_with("r1")
 
 
@@ -64,7 +64,7 @@ async def test_create_role(mock_client) -> None:
 async def test_update_role(mock_client) -> None:
     mock_client.get_role = AsyncMock(return_value={"id": "r1", "name": "old"})
     mock_client.update_role = AsyncMock(return_value={"id": "r1", "name": "new"})
-    result = await update_role(mock_client, "r1", "new")
+    await update_role(mock_client, "r1", "new")
     call_body = mock_client.update_role.call_args[0][1]
     assert call_body["name"] == "new"
 

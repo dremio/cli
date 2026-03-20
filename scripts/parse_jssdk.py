@@ -36,9 +36,8 @@ import argparse
 import json
 import re
 import sys
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-
 
 # -- URL pattern mapping from getResourceConfig.ts --
 # These are the actual URL builders in the js-sdk.
@@ -69,19 +68,21 @@ METHOD_PATTERN = re.compile(r"""method:\s*["'](\w+)["']""")
 @dataclass
 class Endpoint:
     """A single API endpoint extracted from the js-sdk."""
-    resource: str          # e.g., "jobs", "catalog", "roles"
-    sku: str               # "oss", "enterprise", "cloud"
-    file: str              # relative file path
-    request_fn: str        # e.g., "sonarV3Request"
-    path_template: str     # e.g., "job/${id}"
-    http_method: str       # GET, POST, PUT, DELETE
+
+    resource: str  # e.g., "jobs", "catalog", "roles"
+    sku: str  # "oss", "enterprise", "cloud"
+    file: str  # relative file path
+    request_fn: str  # e.g., "sonarV3Request"
+    path_template: str  # e.g., "job/${id}"
+    http_method: str  # GET, POST, PUT, DELETE
     full_url_pattern: str  # resolved URL pattern
-    method_context: str    # surrounding function/method name
+    method_context: str  # surrounding function/method name
 
 
 @dataclass
 class APIRegistry:
     """Complete registry of all endpoints in the js-sdk."""
+
     source: str = "dremio/js-sdk"
     endpoints: list[Endpoint] = field(default_factory=list)
 
@@ -150,9 +151,9 @@ def infer_method_context(content: str, match_pos: int) -> str:
     before = content[:match_pos]
     # Match class method patterns: methodName( or methodName =
     patterns = [
-        re.compile(r'(\w+)\s*\([^)]*\)\s*\{[^}]*$', re.DOTALL),
-        re.compile(r'(\w+)\s*=\s*(?:\([^)]*\)\s*=>|function)', re.DOTALL),
-        re.compile(r'(?:async\s+)?(\w+)\s*\(', re.DOTALL),
+        re.compile(r"(\w+)\s*\([^)]*\)\s*\{[^}]*$", re.DOTALL),
+        re.compile(r"(\w+)\s*=\s*(?:\([^)]*\)\s*=>|function)", re.DOTALL),
+        re.compile(r"(?:async\s+)?(\w+)\s*\(", re.DOTALL),
     ]
     # Take last 500 chars to find enclosing method
     snippet = before[-500:]
@@ -173,11 +174,11 @@ def normalize_path_template(path: str) -> str:
     `catalog/by-path/${path.map(...).join("/")}` -> catalog/by-path/{path}
     """
     # Replace ${...} with {param}, extracting first identifier
-    result = re.sub(r'\$\{([^}]+)\}', lambda m: '{' + re.match(r'(\w+)', m.group(1)).group(1) + '}', path)
+    result = re.sub(r"\$\{([^}]+)\}", lambda m: "{" + re.match(r"(\w+)", m.group(1)).group(1) + "}", path)
     # Clean up any remaining template syntax
-    result = result.replace('`', '').replace("'", '').replace('"', '')
+    result = result.replace("`", "").replace("'", "").replace('"', "")
     # Strip query parameters (e.g., ?maxChildren=0)
-    result = result.split('?')[0]
+    result = result.split("?")[0]
     return result
 
 
@@ -209,16 +210,18 @@ def parse_file(file_path: Path, sdk_root: Path) -> list[Endpoint]:
         full_url = resolve_full_url(request_fn, normalized_path)
         method_ctx = infer_method_context(content, match.start())
 
-        endpoints.append(Endpoint(
-            resource=resource,
-            sku=sku,
-            file=str(relative),
-            request_fn=request_fn,
-            path_template=normalized_path,
-            http_method=http_method,
-            full_url_pattern=full_url,
-            method_context=method_ctx,
-        ))
+        endpoints.append(
+            Endpoint(
+                resource=resource,
+                sku=sku,
+                file=str(relative),
+                request_fn=request_fn,
+                path_template=normalized_path,
+                http_method=http_method,
+                full_url_pattern=full_url,
+                method_context=method_ctx,
+            )
+        )
 
     return endpoints
 
@@ -291,22 +294,26 @@ def compare_coverage(registry: APIRegistry) -> dict:
         matched = False
         for drs_key, drs_method in drs_normalized.items():
             if _endpoints_match(sdk_key, drs_key):
-                covered.append({
-                    "sdk_endpoint": sdk_key,
-                    "drs_method": drs_method,
-                    "resource": eps[0].resource,
-                    "sku": eps[0].sku,
-                })
+                covered.append(
+                    {
+                        "sdk_endpoint": sdk_key,
+                        "drs_method": drs_method,
+                        "resource": eps[0].resource,
+                        "sku": eps[0].sku,
+                    }
+                )
                 matched = True
                 break
         if not matched:
-            uncovered.append({
-                "endpoint": sdk_key,
-                "resource": eps[0].resource,
-                "sku": eps[0].sku,
-                "file": eps[0].file,
-                "method": eps[0].method_context,
-            })
+            uncovered.append(
+                {
+                    "endpoint": sdk_key,
+                    "resource": eps[0].resource,
+                    "sku": eps[0].sku,
+                    "file": eps[0].file,
+                    "method": eps[0].method_context,
+                }
+            )
 
     # Find drs endpoints not in sdk
     sdk_keys_normalized = set()
@@ -333,9 +340,11 @@ def compare_coverage(registry: APIRegistry) -> dict:
 
 def _endpoints_match(a: str, b: str) -> bool:
     """Fuzzy-match two endpoint patterns, ignoring parameter names."""
+
     def normalize(s: str) -> str:
         # Replace any {param} with {_}
-        return re.sub(r'\{[^}]+\}', '{_}', s)
+        return re.sub(r"\{[^}]+\}", "{_}", s)
+
     return normalize(a) == normalize(b)
 
 
@@ -374,7 +383,7 @@ def main():
             "resources": {
                 name: {
                     "endpoint_count": len(eps),
-                    "skus": sorted(set(e["sku"] for e in eps)),
+                    "skus": sorted({e["sku"] for e in eps}),
                     "endpoints": [
                         {
                             "method": e["http_method"],
@@ -393,7 +402,7 @@ def main():
         output = json.dumps(output_data, indent=2)
 
     # Print summary to stderr
-    print(f"\njs-sdk API Registry", file=sys.stderr)
+    print("\njs-sdk API Registry", file=sys.stderr)
     print(f"{'=' * 50}", file=sys.stderr)
     print(f"Total endpoints: {len(registry.endpoints)}", file=sys.stderr)
     by_sku = registry.by_sku
@@ -403,13 +412,13 @@ def main():
     print(f"\nResources ({len(by_res)}):", file=sys.stderr)
     for name in sorted(by_res):
         eps = by_res[name]
-        methods = set(f"{e.http_method} {e.path_template}" for e in eps)
+        methods = {f"{e.http_method} {e.path_template}" for e in eps}
         print(f"  {name}: {len(methods)} unique endpoints", file=sys.stderr)
 
     if args.compare:
         result = json.loads(output)
         s = result["summary"]
-        print(f"\nCoverage Comparison", file=sys.stderr)
+        print("\nCoverage Comparison", file=sys.stderr)
         print(f"  js-sdk endpoints:     {s['sdk_total']}", file=sys.stderr)
         print(f"  Covered by drs:       {s['drs_covered']}", file=sys.stderr)
         print(f"  Not in drs:           {s['sdk_uncovered_by_drs']}", file=sys.stderr)

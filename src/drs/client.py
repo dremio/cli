@@ -80,7 +80,12 @@ class DremioClient:
                     delay = _RETRY_BACKOFF[attempt]
                     logger.warning(
                         "Retryable HTTP %d on %s %s — retrying in %.1fs (attempt %d/%d)",
-                        resp.status_code, method, url, delay, attempt + 1, _MAX_RETRIES,
+                        resp.status_code,
+                        method,
+                        url,
+                        delay,
+                        attempt + 1,
+                        _MAX_RETRIES,
                     )
                     await asyncio.sleep(delay)
                     continue
@@ -91,7 +96,11 @@ class DremioClient:
                     delay = _RETRY_BACKOFF[attempt]
                     logger.warning(
                         "Timeout on %s %s — retrying in %.1fs (attempt %d/%d)",
-                        method, url, delay, attempt + 1, _MAX_RETRIES,
+                        method,
+                        url,
+                        delay,
+                        attempt + 1,
+                        _MAX_RETRIES,
                     )
                     await asyncio.sleep(delay)
                     continue
@@ -155,9 +164,7 @@ class DremioClient:
     async def get_job_status(self, job_id: str) -> dict:
         return await self._get(self._v0(f"/job/{job_id}"))
 
-    async def get_job_results(
-        self, job_id: str, limit: int = 500, offset: int = 0
-    ) -> dict:
+    async def get_job_results(self, job_id: str, limit: int = 500, offset: int = 0) -> dict:
         return await self._get(
             self._v0(f"/job/{job_id}/results"),
             params={"limit": limit, "offset": offset},
@@ -304,26 +311,14 @@ class DremioClient:
 
     # -- Grants (v1) --
 
-    async def get_grants(
-        self, scope: str, scope_id: str, grantee_type: str, grantee_id: str
-    ) -> dict:
+    async def get_grants(self, scope: str, scope_id: str, grantee_type: str, grantee_id: str) -> dict:
         """Get grants. scope is 'projects', 'orgs', 'clouds', etc."""
-        return await self._get(
-            self._v1(f"/{scope}/{scope_id}/grants/{grantee_type}/{grantee_id}")
-        )
+        return await self._get(self._v1(f"/{scope}/{scope_id}/grants/{grantee_type}/{grantee_id}"))
 
-    async def set_grants(
-        self, scope: str, scope_id: str, grantee_type: str, grantee_id: str, body: dict
-    ) -> dict:
+    async def set_grants(self, scope: str, scope_id: str, grantee_type: str, grantee_id: str, body: dict) -> dict:
         """Set grants. PUT /v1/{scope}/{scopeId}/grants/{granteeType}/{granteeId}."""
-        return await self._put(
-            self._v1(f"/{scope}/{scope_id}/grants/{grantee_type}/{grantee_id}"), json=body
-        )
+        return await self._put(self._v1(f"/{scope}/{scope_id}/grants/{grantee_type}/{grantee_id}"), json=body)
 
-    async def delete_grants(
-        self, scope: str, scope_id: str, grantee_type: str, grantee_id: str
-    ) -> dict:
+    async def delete_grants(self, scope: str, scope_id: str, grantee_type: str, grantee_id: str) -> dict:
         """Remove grants. DELETE /v1/{scope}/{scopeId}/grants/{granteeType}/{granteeId}."""
-        return await self._delete(
-            self._v1(f"/{scope}/{scope_id}/grants/{grantee_type}/{grantee_id}")
-        )
+        return await self._delete(self._v1(f"/{scope}/{scope_id}/grants/{grantee_type}/{grantee_id}"))

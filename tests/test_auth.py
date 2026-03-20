@@ -23,8 +23,9 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from pydantic import ValidationError
 
-from drs.auth import DrsConfig, load_config
+from drs.auth import load_config
 
 
 def test_config_from_env_vars(tmp_path: Path) -> None:
@@ -45,10 +46,14 @@ def test_config_from_env_vars(tmp_path: Path) -> None:
 def test_config_from_file(tmp_path: Path) -> None:
     """Config file values should load correctly."""
     config_file = tmp_path / "config.yaml"
-    config_file.write_text(yaml.dump({
-        "pat": "file-token",
-        "project_id": "file-project",
-    }))
+    config_file.write_text(
+        yaml.dump(
+            {
+                "pat": "file-token",
+                "project_id": "file-project",
+            }
+        )
+    )
 
     with patch.dict(os.environ, {}, clear=False):
         for k in ["DREMIO_TOKEN", "DREMIO_PAT", "DREMIO_PROJECT_ID", "DREMIO_URI"]:
@@ -63,10 +68,14 @@ def test_config_from_file(tmp_path: Path) -> None:
 def test_config_env_overrides_file(tmp_path: Path) -> None:
     """Env vars should override config file values."""
     config_file = tmp_path / "config.yaml"
-    config_file.write_text(yaml.dump({
-        "pat": "file-token",
-        "project_id": "file-project",
-    }))
+    config_file.write_text(
+        yaml.dump(
+            {
+                "pat": "file-token",
+                "project_id": "file-project",
+            }
+        )
+    )
 
     with patch.dict(os.environ, {"DREMIO_TOKEN": "env-token"}, clear=False):
         os.environ.pop("DREMIO_PAT", None)
@@ -83,18 +92,22 @@ def test_config_missing_required_field(tmp_path: Path) -> None:
     with patch.dict(os.environ, {}, clear=False):
         for k in ["DREMIO_TOKEN", "DREMIO_PAT", "DREMIO_PROJECT_ID", "DREMIO_URI"]:
             os.environ.pop(k, None)
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             load_config(tmp_path / "nonexistent.yaml")
 
 
 def test_config_dremio_mcp_compat(tmp_path: Path) -> None:
     """Should support dremio-mcp config format (token, endpoint, projectId)."""
     config_file = tmp_path / "config.yaml"
-    config_file.write_text(yaml.dump({
-        "token": "mcp-token",
-        "projectId": "mcp-project",
-        "endpoint": "https://mcp.dremio.cloud",
-    }))
+    config_file.write_text(
+        yaml.dump(
+            {
+                "token": "mcp-token",
+                "projectId": "mcp-project",
+                "endpoint": "https://mcp.dremio.cloud",
+            }
+        )
+    )
 
     with patch.dict(os.environ, {}, clear=False):
         for k in ["DREMIO_TOKEN", "DREMIO_PAT", "DREMIO_PROJECT_ID", "DREMIO_URI"]:
@@ -127,11 +140,15 @@ def test_dremio_token_overrides_dremio_pat(tmp_path: Path) -> None:
 def test_cli_args_override_env(tmp_path: Path) -> None:
     """CLI args should override env vars and file values."""
     config_file = tmp_path / "config.yaml"
-    config_file.write_text(yaml.dump({
-        "pat": "file-token",
-        "project_id": "file-project",
-        "uri": "https://file.dremio.cloud",
-    }))
+    config_file.write_text(
+        yaml.dump(
+            {
+                "pat": "file-token",
+                "project_id": "file-project",
+                "uri": "https://file.dremio.cloud",
+            }
+        )
+    )
 
     env = {"DREMIO_TOKEN": "env-token", "DREMIO_PROJECT_ID": "env-project"}
     with patch.dict(os.environ, env, clear=False):

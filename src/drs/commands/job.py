@@ -18,22 +18,19 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
 
 import httpx
 import typer
 
 from drs.client import DremioClient
 from drs.commands.query import run_query
-from drs.output import OutputFormat, output, error
-from drs.utils import handle_api_error, validate_job_state, validate_job_id
+from drs.output import OutputFormat, error, output
+from drs.utils import handle_api_error, validate_job_id, validate_job_state
 
 app = typer.Typer(help="List and inspect query jobs.")
 
 
-async def list_jobs(
-    client: DremioClient, status_filter: str | None = None, limit: int = 25
-) -> dict:
+async def list_jobs(client: DremioClient, status_filter: str | None = None, limit: int = 25) -> dict:
     """List recent jobs via sys.project.jobs."""
     sql = "SELECT job_id, user_name, query_type, status, submitted_ts, final_state_ts FROM sys.project.jobs"
     if status_filter:
@@ -66,8 +63,10 @@ async def profile(client: DremioClient, job_id: str) -> dict:
 
 # -- CLI wrappers --
 
+
 def _get_client() -> DremioClient:
     from drs.cli import get_client
+
     return get_client()
 
 
@@ -82,6 +81,7 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
         result = asyncio.run(_execute())
     except Exception as exc:
         from drs.utils import DremioAPIError
+
         if isinstance(exc, DremioAPIError):
             error(str(exc))
             raise typer.Exit(1)
@@ -94,7 +94,9 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
 
 @app.command("list")
 def cli_list(
-    status_filter: Optional[str] = typer.Option(None, "--status", "-s", help="Filter by job state: COMPLETED, FAILED, RUNNING, CANCELED, PLANNING, ENQUEUED"),
+    status_filter: str | None = typer.Option(
+        None, "--status", "-s", help="Filter by job state: COMPLETED, FAILED, RUNNING, CANCELED, PLANNING, ENQUEUED"
+    ),
     limit: int = typer.Option(25, "--limit", "-n", help="Max jobs to return (default 25)"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
     fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include"),

@@ -18,10 +18,10 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import httpx
-
+if TYPE_CHECKING:
+    import httpx
 
 # -- Input hardening (defend against agent hallucinations) --
 
@@ -54,9 +54,7 @@ def sanitize_path(path: str) -> str:
             elif not in_quotes:
                 stripped += ch
         if DANGEROUS_PATH_PATTERN.search(stripped):
-            raise ValueError(
-                f"Invalid path '{path}': contains '..' traversal or special characters (?, #, %)"
-            )
+            raise ValueError(f"Invalid path '{path}': contains '..' traversal or special characters (?, #, %)")
     return path
 
 
@@ -89,9 +87,11 @@ def filter_fields(data: Any, fields: list[str]) -> Any:
         # Always include structural keys
         for key in ("rows", "data", "entities"):
             if key in data and key not in result:
-                result[key] = [filter_fields(item, fields) for item in data[key]] if isinstance(data[key], list) else data[key]
+                result[key] = (
+                    [filter_fields(item, fields) for item in data[key]] if isinstance(data[key], list) else data[key]
+                )
         return result if result else data
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return [filter_fields(item, fields) for item in data]
     return data
 
@@ -114,7 +114,7 @@ def parse_path(path: str) -> list[str]:
         ch = path[i]
         if ch == '"':
             in_quotes = not in_quotes
-        elif ch == '.' and not in_quotes:
+        elif ch == "." and not in_quotes:
             parts.append("".join(current))
             current = []
         else:
@@ -136,22 +136,25 @@ def quote_path_sql(path: str) -> str:
 
 # Valid job states for filtering
 VALID_JOB_STATES = {
-    "COMPLETED", "FAILED", "RUNNING", "CANCELED", "CANCELLED",
-    "PLANNING", "ENQUEUED", "STARTING", "PENDING",
+    "COMPLETED",
+    "FAILED",
+    "RUNNING",
+    "CANCELED",
+    "CANCELLED",
+    "PLANNING",
+    "ENQUEUED",
+    "STARTING",
+    "PENDING",
 }
 
-UUID_PATTERN = re.compile(
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE
-)
+UUID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
 
 
 def validate_job_state(state: str) -> str:
     """Validate and normalize a job state filter value."""
     upper = state.upper()
     if upper not in VALID_JOB_STATES:
-        raise ValueError(
-            f"Invalid job state '{state}'. Valid states: {', '.join(sorted(VALID_JOB_STATES))}"
-        )
+        raise ValueError(f"Invalid job state '{state}'. Valid states: {', '.join(sorted(VALID_JOB_STATES))}")
     return upper
 
 

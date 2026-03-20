@@ -21,11 +21,11 @@ import csv
 import io
 import json
 import sys
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class OutputFormat(str, Enum):
+class OutputFormat(StrEnum):
     json = "json"
     csv = "csv"
     pretty = "pretty"
@@ -35,9 +35,9 @@ def render(data: Any, fmt: OutputFormat = OutputFormat.json) -> str:
     """Render data to the specified format string."""
     if fmt == OutputFormat.json:
         return json.dumps(data, indent=2, default=str)
-    elif fmt == OutputFormat.csv:
+    if fmt == OutputFormat.csv:
         return _to_csv(data)
-    elif fmt == OutputFormat.pretty:
+    if fmt == OutputFormat.pretty:
         return _to_pretty(data)
     return json.dumps(data, indent=2, default=str)
 
@@ -46,6 +46,7 @@ def output(data: Any, fmt: OutputFormat = OutputFormat.json, fields: str | None 
     """Render and print data to stdout, optionally filtering to specified fields."""
     if fields:
         from drs.utils import filter_fields
+
         data = filter_fields(data, [f.strip() for f in fields.split(",")])
     print(render(data, fmt))
 
@@ -79,7 +80,7 @@ def _to_pretty(data: Any) -> str:
         if rows is None:
             return _dict_table(data)
         return _list_table(rows)
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return _list_table(data)
     return str(data)
 
@@ -87,7 +88,7 @@ def _to_pretty(data: Any) -> str:
 def _dict_table(d: dict) -> str:
     if not d:
         return "(empty)"
-    max_key = max(len(str(k)) for k in d.keys())
+    max_key = max(len(str(k)) for k in d)
     lines = []
     for k, v in d.items():
         lines.append(f"{str(k).ljust(max_key)}  {v}")

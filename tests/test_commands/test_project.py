@@ -21,7 +21,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from drs.commands.project import list_projects, get_project, create_project, update_project, delete_project
+from drs.commands.project import create_project, delete_project, get_project, list_projects, update_project
 
 
 @pytest.mark.asyncio

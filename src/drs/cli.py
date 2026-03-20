@@ -21,15 +21,13 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 import httpx
 import typer
 
 from drs.auth import DrsConfig, load_config
 from drs.client import DremioClient
-from drs.commands import query, schema, engine, user, role, grant, project
-from drs.commands import folder, reflection, wiki, tag, job
+from drs.commands import engine, folder, grant, job, project, query, reflection, role, schema, tag, user, wiki
 
 app = typer.Typer(
     name="dremio",
@@ -58,10 +56,12 @@ _cli_opts: dict = {}
 
 @app.callback()
 def main(
-    config: Optional[str] = typer.Option(None, "--config", "-c", help="Path to config file"),
-    token: Optional[str] = typer.Option(None, "--token", help="Dremio personal access token (PAT)"),
-    project_id: Optional[str] = typer.Option(None, "--project-id", help="Dremio Cloud project ID"),
-    uri: Optional[str] = typer.Option(None, "--uri", help="Dremio API base URI (e.g., https://api.dremio.cloud, https://api.eu.dremio.cloud)"),
+    config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
+    token: str | None = typer.Option(None, "--token", help="Dremio personal access token (PAT)"),
+    project_id: str | None = typer.Option(None, "--project-id", help="Dremio Cloud project ID"),
+    uri: str | None = typer.Option(
+        None, "--uri", help="Dremio API base URI (e.g., https://api.dremio.cloud, https://api.eu.dremio.cloud)"
+    ),
 ) -> None:
     """Global options for dremio CLI."""
     global _cli_opts
@@ -100,14 +100,15 @@ def get_client() -> DremioClient:
 
 # -- Top-level commands --
 
+
 @app.command("search")
 def search_command(
     term: str = typer.Argument(help="Search term (matches table names, view names, source names)"),
     fmt: str = typer.Option("json", "--output", "-o", help="Output format: json, csv, pretty"),
 ) -> None:
     """Full-text search across all catalog entities (tables, views, sources)."""
-    from drs.output import OutputFormat, output, error
-    from drs.utils import handle_api_error, DremioAPIError
+    from drs.output import OutputFormat, error, output
+    from drs.utils import DremioAPIError, handle_api_error
 
     client = get_client()
 
@@ -133,7 +134,9 @@ def describe_command(
     command: str = typer.Argument(help="Command to describe (e.g., 'query.run', 'folder.get', 'reflection.delete')"),
 ) -> None:
     """Show machine-readable schema for a command — parameters, types, and descriptions."""
-    from drs.introspect import describe_command as _describe, list_commands
+    from drs.introspect import describe_command as _describe
+    from drs.introspect import list_commands
+
     result = _describe(command)
     if result is None:
         print(f"Unknown command: {command}", file=sys.stderr)

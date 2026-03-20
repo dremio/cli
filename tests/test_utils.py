@@ -20,8 +20,13 @@ from __future__ import annotations
 import pytest
 
 from drs.utils import (
-    parse_path, quote_path_sql, validate_job_state, validate_job_id,
-    sanitize_input, sanitize_path, filter_fields,
+    filter_fields,
+    parse_path,
+    quote_path_sql,
+    sanitize_input,
+    sanitize_path,
+    validate_job_id,
+    validate_job_state,
 )
 
 

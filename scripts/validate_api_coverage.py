@@ -36,36 +36,32 @@ from pathlib import Path
 
 import yaml
 
-
 # -- drs client coverage: method -> (HTTP_METHOD, url_pattern) --
 # This is the source of truth for what drs implements.
 # Kept here (not parsed from client.py) so it's explicit and reviewable.
 
 DRS_COVERAGE = {
     # SQL / Jobs (v0 project-scoped)
-    "submit_sql":        ("POST", "/v0/projects/{pid}/sql"),
-    "get_job_status":    ("GET",  "/v0/projects/{pid}/job/{jobId}"),
-    "get_job_results":   ("GET",  "/v0/projects/{pid}/job/{jobId}/results"),
-    "cancel_job":        ("POST", "/v0/projects/{pid}/job/{jobId}/cancel"),
-
+    "submit_sql": ("POST", "/v0/projects/{pid}/sql"),
+    "get_job_status": ("GET", "/v0/projects/{pid}/job/{jobId}"),
+    "get_job_results": ("GET", "/v0/projects/{pid}/job/{jobId}/results"),
+    "cancel_job": ("POST", "/v0/projects/{pid}/job/{jobId}/cancel"),
     # Catalog (v0 project-scoped)
-    "get_catalog_entity":  ("GET",  "/v0/projects/{pid}/catalog/{id}"),
-    "get_catalog_by_path": ("GET",  "/v0/projects/{pid}/catalog/by-path/{path}"),
-    "search":              ("POST", "/v0/projects/{pid}/search"),
-    "get_lineage":         ("GET",  "/v0/projects/{pid}/catalog/{id}/graph"),
-    "get_wiki":            ("GET",  "/v0/projects/{pid}/catalog/{id}/collaboration/wiki"),
-    "get_tags":            ("GET",  "/v0/projects/{pid}/catalog/{id}/collaboration/tag"),
-
+    "get_catalog_entity": ("GET", "/v0/projects/{pid}/catalog/{id}"),
+    "get_catalog_by_path": ("GET", "/v0/projects/{pid}/catalog/by-path/{path}"),
+    "search": ("POST", "/v0/projects/{pid}/search"),
+    "get_lineage": ("GET", "/v0/projects/{pid}/catalog/{id}/graph"),
+    "get_wiki": ("GET", "/v0/projects/{pid}/catalog/{id}/collaboration/wiki"),
+    "get_tags": ("GET", "/v0/projects/{pid}/catalog/{id}/collaboration/tag"),
     # Reflections (v0 project-scoped)
-    "get_reflection":     ("GET",    "/v0/projects/{pid}/reflection/{id}"),
-    "refresh_reflection": ("POST",   "/v0/projects/{pid}/reflection/{id}/refresh"),
-    "delete_reflection":  ("DELETE", "/v0/projects/{pid}/reflection/{id}"),
-
+    "get_reflection": ("GET", "/v0/projects/{pid}/reflection/{id}"),
+    "refresh_reflection": ("POST", "/v0/projects/{pid}/reflection/{id}/refresh"),
+    "delete_reflection": ("DELETE", "/v0/projects/{pid}/reflection/{id}"),
     # Users & Roles (v1)
-    "list_users":        ("GET", "/v1/users"),
-    "get_user_by_name":  ("GET", "/v1/users/name/{userName}"),
-    "list_roles":        ("GET", "/v1/roles"),
-    "get_grants":        ("GET", "/v1/{scope}/{scopeId}/grants/{type}/{id}"),
+    "list_users": ("GET", "/v1/users"),
+    "get_user_by_name": ("GET", "/v1/users/name/{userName}"),
+    "list_roles": ("GET", "/v1/roles"),
+    "get_grants": ("GET", "/v1/{scope}/{scopeId}/grants/{type}/{id}"),
 }
 
 
@@ -121,7 +117,7 @@ def load_spec_endpoints(dremio_repo: Path) -> dict[str, list[tuple[str, str]]]:
                 continue
 
             try:
-                with open(spec_path) as f:
+                with spec_path.open() as f:
                     spec = yaml.safe_load(f)
             except Exception as e:
                 print(f"  WARN: Failed to parse {spec_path}: {e}", file=sys.stderr)
@@ -144,6 +140,7 @@ def load_spec_endpoints(dremio_repo: Path) -> dict[str, list[tuple[str, str]]]:
 def normalize_path(path: str) -> str:
     """Normalize path for comparison (collapse path params to {param})."""
     import re
+
     return re.sub(r"\{[^}]+\}", "{*}", path)
 
 
@@ -208,7 +205,7 @@ def main() -> None:
 
     # Report: Covered
     print(f"=== COVERED by drs ({len(covered)}/{total_spec} spec endpoints) ===")
-    for method_name, key, sources in sorted(covered, key=lambda x: x[1]):
+    for method_name, key, _sources in sorted(covered, key=lambda x: x[1]):
         print(f"  {method_name:25s} -> {key[0]:6s} {key[1]}")
 
     # Report: Not covered
@@ -226,7 +223,7 @@ def main() -> None:
         print("  (These may use undocumented endpoints or SQL-based implementations)")
 
     # Summary
-    print(f"\n=== SUMMARY ===")
+    print("\n=== SUMMARY ===")
     print(f"  Spec endpoints found:     {total_spec}")
     print(f"  Covered by drs:           {len(covered)}")
     print(f"  Available but not covered: {len(uncovered)}")
