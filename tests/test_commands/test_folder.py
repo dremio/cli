@@ -21,14 +21,18 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from drs.commands.folder import get_entity, create_folder, delete_entity, grants
+from drs.commands.folder import create_folder, delete_entity, get_entity, grants
 
 
 @pytest.mark.asyncio
 async def test_get_entity_splits_path(mock_client) -> None:
-    mock_client.get_catalog_by_path = AsyncMock(return_value={
-        "id": "abc", "entityType": "dataset", "path": ["space", "table"],
-    })
+    mock_client.get_catalog_by_path = AsyncMock(
+        return_value={
+            "id": "abc",
+            "entityType": "dataset",
+            "path": ["space", "table"],
+        }
+    )
     result = await get_entity(mock_client, "space.table")
     mock_client.get_catalog_by_path.assert_called_once_with(["space", "table"])
     assert result["id"] == "abc"
@@ -47,7 +51,7 @@ async def test_create_folder_single_creates_space(mock_client) -> None:
     mock_client.submit_sql = AsyncMock(return_value={"id": "job-1"})
     mock_client.get_job_status = AsyncMock(return_value={"jobState": "COMPLETED", "rowCount": 0})
     mock_client.get_job_results = AsyncMock(return_value={"rows": []})
-    result = await create_folder(mock_client, "Analytics")
+    await create_folder(mock_client, "Analytics")
     sql = mock_client.submit_sql.call_args[0][0]
     assert 'CREATE SPACE "Analytics"' in sql
 
@@ -58,7 +62,7 @@ async def test_create_folder_nested_creates_folder(mock_client) -> None:
     mock_client.submit_sql = AsyncMock(return_value={"id": "job-1"})
     mock_client.get_job_status = AsyncMock(return_value={"jobState": "COMPLETED", "rowCount": 0})
     mock_client.get_job_results = AsyncMock(return_value={"rows": []})
-    result = await create_folder(mock_client, "Analytics.reports")
+    await create_folder(mock_client, "Analytics.reports")
     sql = mock_client.submit_sql.call_args[0][0]
     assert "CREATE FOLDER" in sql
     assert '"Analytics"."reports"' in sql
@@ -66,19 +70,15 @@ async def test_create_folder_nested_creates_folder(mock_client) -> None:
 
 @pytest.mark.asyncio
 async def test_delete_entity(mock_client) -> None:
-    mock_client.get_catalog_by_path = AsyncMock(return_value={
-        "id": "entity-1", "tag": "v1", "entityType": "space"
-    })
+    mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "entity-1", "tag": "v1", "entityType": "space"})
     mock_client.delete_catalog_entity = AsyncMock(return_value={"status": "ok"})
-    result = await delete_entity(mock_client, "myspace")
+    await delete_entity(mock_client, "myspace")
     mock_client.delete_catalog_entity.assert_called_once_with("entity-1", tag="v1")
 
 
 @pytest.mark.asyncio
 async def test_grants(mock_client) -> None:
-    mock_client.get_catalog_by_path = AsyncMock(return_value={
-        "id": "entity-1", "accessControlList": {"users": []}
-    })
+    mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "entity-1", "accessControlList": {"users": []}})
     result = await grants(mock_client, "myspace.table")
     assert result["path"] == "myspace.table"
     assert "accessControlList" in result

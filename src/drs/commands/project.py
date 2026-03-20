@@ -23,7 +23,7 @@ import httpx
 import typer
 
 from drs.client import DremioClient
-from drs.output import OutputFormat, output, error
+from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error
 
 app = typer.Typer(help="Manage Dremio Cloud projects.")
@@ -79,8 +79,10 @@ async def delete_project(client: DremioClient, project_id: str) -> dict:
 
 # -- CLI wrappers --
 
+
 def _get_client() -> DremioClient:
     from drs.cli import get_client
+
     return get_client()
 
 
@@ -95,6 +97,7 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
         result = asyncio.run(_execute())
     except Exception as exc:
         from drs.utils import DremioAPIError
+
         if isinstance(exc, DremioAPIError):
             error(str(exc))
             raise typer.Exit(1)

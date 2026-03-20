@@ -57,7 +57,6 @@ class TestURLBuilders:
     def test_v1_roles_url(self, client: DremioClient) -> None:
         assert client._v1("/roles") == "https://api.dremio.cloud/v1/roles"
 
-
     def test_v1_user_by_name_url(self, client: DremioClient) -> None:
         """Verify user lookup uses /v1/users/name/ (Cloud endpoint), not /v1/user/by-name/."""
         url = client._v1("/users/name/rahim")
@@ -68,7 +67,6 @@ class TestURLBuilders:
 class TestCatalogURL:
     def test_catalog_root_no_trailing_slash(self, client: DremioClient) -> None:
         """Catalog list with empty entity_id should not produce trailing slash."""
-        path = "/catalog" if not "" else f"/catalog/{''}"
         # Verify the client method builds the right path
         assert client._v3("/catalog") == "https://api.dremio.cloud/v0/projects/proj-123/catalog"
 
@@ -81,7 +79,9 @@ class TestEngineURLs:
         assert client._v0("/engines") == "https://api.dremio.cloud/v0/projects/proj-123/engines"
 
     def test_engine_enable_url(self, client: DremioClient) -> None:
-        assert client._v0("/engines/eng-1/enable") == "https://api.dremio.cloud/v0/projects/proj-123/engines/eng-1/enable"
+        assert (
+            client._v0("/engines/eng-1/enable") == "https://api.dremio.cloud/v0/projects/proj-123/engines/eng-1/enable"
+        )
 
 
 class TestGrantURLs:

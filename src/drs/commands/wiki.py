@@ -23,7 +23,7 @@ import httpx
 import typer
 
 from drs.client import DremioClient
-from drs.output import OutputFormat, output, error
+from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error, parse_path
 
 app = typer.Typer(help="Get and update wiki descriptions on catalog entities.")
@@ -84,8 +84,10 @@ async def update_wiki(client: DremioClient, path: str, text: str) -> dict:
 
 # -- CLI wrappers --
 
+
 def _get_client() -> DremioClient:
     from drs.cli import get_client
+
     return get_client()
 
 
@@ -100,6 +102,7 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
         result = asyncio.run(_execute())
     except Exception as exc:
         from drs.utils import DremioAPIError
+
         if isinstance(exc, DremioAPIError):
             error(str(exc))
             raise typer.Exit(1)
@@ -112,7 +115,7 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
 
 @app.command("get")
 def cli_get(
-    path: str = typer.Argument(help='Dot-separated entity path'),
+    path: str = typer.Argument(help="Dot-separated entity path"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
     """Get wiki description for a catalog entity."""
@@ -122,8 +125,8 @@ def cli_get(
 
 @app.command("update")
 def cli_update(
-    path: str = typer.Argument(help='Dot-separated entity path'),
-    text: str = typer.Argument(help='Wiki text to set (Markdown supported)'),
+    path: str = typer.Argument(help="Dot-separated entity path"),
+    text: str = typer.Argument(help="Wiki text to set (Markdown supported)"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
     """Set or update the wiki description for a catalog entity."""
