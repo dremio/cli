@@ -11,3 +11,7 @@ wheels/
 
 # Generated reports
 docs/API_COVERAGE_REPORT.txt
+docs/*.json
+
+# Generated version file
+src/drs/_version.py
