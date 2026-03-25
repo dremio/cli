@@ -24,7 +24,7 @@ import typer
 
 from drs.client import DremioClient
 from drs.commands.query import run_query
-from drs.output import OutputFormat, output, error
+from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error, parse_path
 
 app = typer.Typer(help="Manage reflections (materialized views).", context_settings={"help_option_names": ["-h", "--help"]})
@@ -96,8 +96,10 @@ async def delete(client: DremioClient, reflection_id: str) -> dict:
 
 # -- CLI wrappers --
 
+
 def _get_client() -> DremioClient:
     from drs.cli import get_client
+
     return get_client()
 
 
@@ -112,6 +114,7 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
         result = asyncio.run(_execute())
     except Exception as exc:
         from drs.utils import DremioAPIError
+
         if isinstance(exc, DremioAPIError):
             error(str(exc))
             raise typer.Exit(1)

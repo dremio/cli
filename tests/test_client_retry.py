@@ -31,10 +31,12 @@ async def test_retry_on_timeout(config) -> None:
     client = DremioClient(config)
     ok_response = httpx.Response(200, json={"ok": True}, request=httpx.Request("GET", "https://example.com"))
 
-    client._client.request = AsyncMock(side_effect=[
-        httpx.TimeoutException("timed out"),
-        ok_response,
-    ])
+    client._client.request = AsyncMock(
+        side_effect=[
+            httpx.TimeoutException("timed out"),
+            ok_response,
+        ]
+    )
 
     with patch("drs.client.asyncio.sleep", new_callable=AsyncMock):
         result = await client._get("https://example.com/test")
@@ -110,9 +112,8 @@ async def test_exhausted_retries_raises_timeout(config) -> None:
 
     client._client.request = AsyncMock(side_effect=httpx.TimeoutException("timed out"))
 
-    with patch("drs.client.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-        with pytest.raises(httpx.TimeoutException):
-            await client._get("https://example.com/test")
+    with patch("drs.client.asyncio.sleep", new_callable=AsyncMock) as mock_sleep, pytest.raises(httpx.TimeoutException):
+        await client._get("https://example.com/test")
 
     assert client._client.request.call_count == 3
     assert mock_sleep.call_count == 2
@@ -126,9 +127,8 @@ async def test_exhausted_retries_returns_last_status(config) -> None:
 
     client._client.request = AsyncMock(return_value=unavailable)
 
-    with patch("drs.client.asyncio.sleep", new_callable=AsyncMock):
-        with pytest.raises(httpx.HTTPStatusError):
-            await client._get("https://example.com/test")
+    with patch("drs.client.asyncio.sleep", new_callable=AsyncMock), pytest.raises(httpx.HTTPStatusError):
+        await client._get("https://example.com/test")
 
     assert client._client.request.call_count == 3
 
@@ -139,11 +139,13 @@ async def test_retry_backoff_delays(config) -> None:
     client = DremioClient(config)
     ok_response = httpx.Response(200, json={"ok": True}, request=httpx.Request("GET", "https://example.com"))
 
-    client._client.request = AsyncMock(side_effect=[
-        httpx.TimeoutException("timed out"),
-        httpx.TimeoutException("timed out"),
-        ok_response,
-    ])
+    client._client.request = AsyncMock(
+        side_effect=[
+            httpx.TimeoutException("timed out"),
+            httpx.TimeoutException("timed out"),
+            ok_response,
+        ]
+    )
 
     with patch("drs.client.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
         result = await client._get("https://example.com/test")

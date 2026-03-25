@@ -21,7 +21,15 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from drs.commands.engine import list_engines, get_engine, create_engine, update_engine, delete_engine, enable_engine, disable_engine
+from drs.commands.engine import (
+    create_engine,
+    delete_engine,
+    disable_engine,
+    enable_engine,
+    get_engine,
+    list_engines,
+    update_engine,
+)
 
 
 @pytest.mark.asyncio
@@ -52,7 +60,7 @@ async def test_create_engine(mock_client) -> None:
 async def test_update_engine(mock_client) -> None:
     mock_client.get_engine = AsyncMock(return_value={"id": "eng-1", "name": "old", "size": "SMALL"})
     mock_client.update_engine = AsyncMock(return_value={"id": "eng-1", "name": "new", "size": "MEDIUM"})
-    result = await update_engine(mock_client, "eng-1", name="new", size="MEDIUM")
+    await update_engine(mock_client, "eng-1", name="new", size="MEDIUM")
     call_body = mock_client.update_engine.call_args[0][1]
     assert call_body["name"] == "new"
     assert call_body["size"] == "MEDIUM"
@@ -61,19 +69,19 @@ async def test_update_engine(mock_client) -> None:
 @pytest.mark.asyncio
 async def test_delete_engine(mock_client) -> None:
     mock_client.delete_engine = AsyncMock(return_value={"status": "ok"})
-    result = await delete_engine(mock_client, "eng-1")
+    await delete_engine(mock_client, "eng-1")
     mock_client.delete_engine.assert_called_once_with("eng-1")
 
 
 @pytest.mark.asyncio
 async def test_enable_engine(mock_client) -> None:
     mock_client.enable_engine = AsyncMock(return_value={"id": "eng-1", "state": "ACTIVE"})
-    result = await enable_engine(mock_client, "eng-1")
+    await enable_engine(mock_client, "eng-1")
     mock_client.enable_engine.assert_called_once_with("eng-1")
 
 
 @pytest.mark.asyncio
 async def test_disable_engine(mock_client) -> None:
     mock_client.disable_engine = AsyncMock(return_value={"id": "eng-1", "state": "DISABLED"})
-    result = await disable_engine(mock_client, "eng-1")
+    await disable_engine(mock_client, "eng-1")
     mock_client.disable_engine.assert_called_once_with("eng-1")

@@ -38,9 +38,7 @@ async def test_get_tags_404(mock_client) -> None:
     mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "e1"})
     request = httpx.Request("GET", "https://example.com")
     response = httpx.Response(404, request=request)
-    mock_client.get_tags = AsyncMock(
-        side_effect=httpx.HTTPStatusError("Not Found", request=request, response=response)
-    )
+    mock_client.get_tags = AsyncMock(side_effect=httpx.HTTPStatusError("Not Found", request=request, response=response))
     result = await get_tags(mock_client, "myspace.table")
     assert result["tags"] == []
 
@@ -50,5 +48,5 @@ async def test_update_tags(mock_client) -> None:
     mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "e1"})
     mock_client.get_tags = AsyncMock(return_value={"tags": ["old"], "version": 1})
     mock_client.set_tags = AsyncMock(return_value={"tags": ["pii", "finance"], "version": 2})
-    result = await update_tags(mock_client, "myspace.table", ["pii", "finance"])
+    await update_tags(mock_client, "myspace.table", ["pii", "finance"])
     mock_client.set_tags.assert_called_once_with("e1", ["pii", "finance"], version=1)

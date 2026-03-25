@@ -21,20 +21,20 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from drs.commands.grant import get_grants, set_grants, remove_grants
+from drs.commands.grant import get_grants, remove_grants, set_grants
 
 
 @pytest.mark.asyncio
 async def test_get_grants(mock_client) -> None:
     mock_client.get_grants = AsyncMock(return_value={"privileges": ["MANAGE_GRANTS"]})
-    result = await get_grants(mock_client, "projects", "proj-1", "role", "role-1")
+    await get_grants(mock_client, "projects", "proj-1", "role", "role-1")
     mock_client.get_grants.assert_called_once_with("projects", "proj-1", "role", "role-1")
 
 
 @pytest.mark.asyncio
 async def test_set_grants(mock_client) -> None:
     mock_client.set_grants = AsyncMock(return_value={"privileges": ["MANAGE_GRANTS", "CREATE_TABLE"]})
-    result = await set_grants(mock_client, "projects", "proj-1", "role", "role-1", ["MANAGE_GRANTS", "CREATE_TABLE"])
+    await set_grants(mock_client, "projects", "proj-1", "role", "role-1", ["MANAGE_GRANTS", "CREATE_TABLE"])
     mock_client.set_grants.assert_called_once_with(
         "projects", "proj-1", "role", "role-1", {"privileges": ["MANAGE_GRANTS", "CREATE_TABLE"]}
     )

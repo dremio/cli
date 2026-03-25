@@ -1,3 +1,7 @@
+[![CI](https://github.com/dremio/cli/actions/workflows/ci.yml/badge.svg)](https://github.com/dremio/cli/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/dremio-cli)](https://pypi.org/project/dremio-cli/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 # dremio — Developer CLI for Dremio Cloud
 
 A command-line tool for working with Dremio Cloud. Run SQL queries, browse the catalog, inspect table schemas, manage reflections, monitor jobs, and audit access — from your terminal or any automation pipeline.
@@ -29,15 +33,16 @@ Dremio Cloud has a powerful REST API and rich system tables, but no official CLI
 ### 1. Install
 
 ```bash
-# Clone the repo
+# Install from PyPI (recommended)
+pip install dremio-cli
+
+# Or with uv
+uv tool install dremio-cli
+
+# Or install from source
 git clone https://github.com/dremio/cli.git
 cd cli
-
-# Install as a standalone tool (recommended)
 uv tool install .
-
-# Or with pip
-pip install .
 
 # Or for development (editable install)
 uv sync

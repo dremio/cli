@@ -24,7 +24,7 @@ import typer
 
 from drs.client import DremioClient
 from drs.commands.query import run_query
-from drs.output import OutputFormat, output, error
+from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error, parse_path, quote_path_sql
 
 app = typer.Typer(help="Describe table schemas, trace lineage, and sample data.", context_settings={"help_option_names": ["-h", "--help"]})
@@ -38,10 +38,7 @@ async def describe(client: DremioClient, path: str) -> dict:
     except httpx.HTTPStatusError as exc:
         raise handle_api_error(exc) from exc
     fields = entity.get("fields", [])
-    columns = [
-        {"name": f["name"], "type": f["type"]["name"], "nullable": f.get("isNullable", True)}
-        for f in fields
-    ]
+    columns = [{"name": f["name"], "type": f["type"]["name"], "nullable": f.get("isNullable", True)} for f in fields]
     return {
         "path": path,
         "entityType": entity.get("entityType"),
@@ -70,8 +67,10 @@ async def sample(client: DremioClient, path: str, limit: int = 10) -> dict:
 
 # -- CLI wrappers --
 
+
 def _get_client() -> DremioClient:
     from drs.cli import get_client
+
     return get_client()
 
 
@@ -86,6 +85,7 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
         result = asyncio.run(_execute())
     except Exception as exc:
         from drs.utils import DremioAPIError
+
         if isinstance(exc, DremioAPIError):
             error(str(exc))
             raise typer.Exit(1)
@@ -98,9 +98,11 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
 
 @app.command("describe")
 def cli_describe(
-    path: str = typer.Argument(help='Dot-separated table/view path (e.g., myspace.mytable)'),
+    path: str = typer.Argument(help="Dot-separated table/view path (e.g., myspace.mytable)"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
-    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include (e.g., 'columns.name,columns.type')"),
+    fields: str = typer.Option(
+        None, "--fields", "-f", help="Comma-separated fields to include (e.g., 'columns.name,columns.type')"
+    ),
 ) -> None:
     """Show column names, data types, and nullability for a table or view."""
     client = _get_client()
@@ -109,7 +111,7 @@ def cli_describe(
 
 @app.command("lineage")
 def cli_lineage(
-    path: str = typer.Argument(help='Dot-separated table/view path'),
+    path: str = typer.Argument(help="Dot-separated table/view path"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
     """Show upstream and downstream dependency graph for a table or view."""
@@ -119,7 +121,7 @@ def cli_lineage(
 
 @app.command("sample")
 def cli_sample(
-    path: str = typer.Argument(help='Dot-separated table/view path'),
+    path: str = typer.Argument(help="Dot-separated table/view path"),
     limit: int = typer.Option(10, help="Number of sample rows (default 10)"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
     fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include in output"),

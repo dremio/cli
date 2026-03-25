@@ -38,9 +38,7 @@ async def test_get_wiki_404(mock_client) -> None:
     mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "e1"})
     request = httpx.Request("GET", "https://example.com")
     response = httpx.Response(404, request=request)
-    mock_client.get_wiki = AsyncMock(
-        side_effect=httpx.HTTPStatusError("Not Found", request=request, response=response)
-    )
+    mock_client.get_wiki = AsyncMock(side_effect=httpx.HTTPStatusError("Not Found", request=request, response=response))
     result = await get_wiki(mock_client, "myspace.table")
     assert result["wiki"] == ""
 

@@ -23,15 +23,13 @@ import httpx
 import typer
 
 from drs.client import DremioClient
-from drs.output import OutputFormat, output, error
+from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error
 
 app = typer.Typer(help="Manage grants on projects, engines, and org resources.", context_settings={"help_option_names": ["-h", "--help"]})
 
 
-async def get_grants(
-    client: DremioClient, scope: str, scope_id: str, grantee_type: str, grantee_id: str
-) -> dict:
+async def get_grants(client: DremioClient, scope: str, scope_id: str, grantee_type: str, grantee_id: str) -> dict:
     """Get grants for a grantee on a resource."""
     try:
         return await client.get_grants(scope, scope_id, grantee_type, grantee_id)
@@ -40,7 +38,11 @@ async def get_grants(
 
 
 async def set_grants(
-    client: DremioClient, scope: str, scope_id: str, grantee_type: str, grantee_id: str,
+    client: DremioClient,
+    scope: str,
+    scope_id: str,
+    grantee_type: str,
+    grantee_id: str,
     privileges: list[str],
 ) -> dict:
     """Set grants for a grantee on a resource."""
@@ -51,9 +53,7 @@ async def set_grants(
         raise handle_api_error(exc) from exc
 
 
-async def remove_grants(
-    client: DremioClient, scope: str, scope_id: str, grantee_type: str, grantee_id: str
-) -> dict:
+async def remove_grants(client: DremioClient, scope: str, scope_id: str, grantee_type: str, grantee_id: str) -> dict:
     """Remove all grants for a grantee on a resource."""
     try:
         return await client.delete_grants(scope, scope_id, grantee_type, grantee_id)
@@ -63,8 +63,10 @@ async def remove_grants(
 
 # -- CLI wrappers --
 
+
 def _get_client() -> DremioClient:
     from drs.cli import get_client
+
     return get_client()
 
 
@@ -79,6 +81,7 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
         result = asyncio.run(_execute())
     except Exception as exc:
         from drs.utils import DremioAPIError
+
         if isinstance(exc, DremioAPIError):
             error(str(exc))
             raise typer.Exit(1)

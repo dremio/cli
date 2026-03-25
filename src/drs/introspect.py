@@ -26,19 +26,42 @@ from drs.utils import VALID_JOB_STATES
 COMMAND_SCHEMAS: dict[str, dict] = {
     # -- Query --
     "query.run": {
-        "group": "query", "command": "run",
+        "group": "query",
+        "command": "run",
         "description": "Execute a SQL query against Dremio Cloud, wait for completion, return results.",
         "mechanism": "REST",
-        "endpoints": ["POST /v0/projects/{pid}/sql", "GET /v0/projects/{pid}/job/{id}", "GET /v0/projects/{pid}/job/{id}/results"],
+        "endpoints": [
+            "POST /v0/projects/{pid}/sql",
+            "GET /v0/projects/{pid}/job/{id}",
+            "GET /v0/projects/{pid}/job/{id}/results",
+        ],
         "parameters": [
-            {"name": "sql", "type": "string", "required": True, "positional": True, "description": "SQL query to execute"},
-            {"name": "context", "type": "string", "required": False, "description": "Dot-separated default schema context"},
+            {
+                "name": "sql",
+                "type": "string",
+                "required": True,
+                "positional": True,
+                "description": "SQL query to execute",
+            },
+            {
+                "name": "context",
+                "type": "string",
+                "required": False,
+                "description": "Dot-separated default schema context",
+            },
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
-            {"name": "fields", "type": "string", "required": False, "flag": "--fields/-f", "description": "Comma-separated fields to include"},
+            {
+                "name": "fields",
+                "type": "string",
+                "required": False,
+                "flag": "--fields/-f",
+                "description": "Comma-separated fields to include",
+            },
         ],
     },
     "query.status": {
-        "group": "query", "command": "status",
+        "group": "query",
+        "command": "status",
         "description": "Check the status of a Dremio job by UUID.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects/{pid}/job/{id}"],
@@ -48,19 +71,21 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "query.cancel": {
-        "group": "query", "command": "cancel",
+        "group": "query",
+        "command": "cancel",
         "description": "Cancel a running Dremio job.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["POST /v0/projects/{pid}/job/{id}/cancel"],
         "parameters": [
             {"name": "job_id", "type": "string", "required": True, "positional": True, "format": "uuid"},
             {"name": "dry_run", "type": "boolean", "required": False, "default": False, "flag": "--dry-run"},
         ],
     },
-
     # -- Folder --
     "folder.list": {
-        "group": "folder", "command": "list",
+        "group": "folder",
+        "command": "list",
         "description": "List top-level catalog entities: sources, spaces, and home folder.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects/{pid}/catalog"],
@@ -70,30 +95,47 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "folder.get": {
-        "group": "folder", "command": "get",
+        "group": "folder",
+        "command": "get",
         "description": "Get full metadata for a catalog entity by dot-separated path.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}"],
         "parameters": [
-            {"name": "path", "type": "string", "required": True, "positional": True, "description": "Dot-separated entity path"},
+            {
+                "name": "path",
+                "type": "string",
+                "required": True,
+                "positional": True,
+                "description": "Dot-separated entity path",
+            },
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
             {"name": "fields", "type": "string", "required": False},
         ],
     },
     "folder.create": {
-        "group": "folder", "command": "create",
+        "group": "folder",
+        "command": "create",
         "description": "Create a space (single name) or folder (nested path) using SQL.",
-        "mechanism": "SQL", "mutating": True,
-        "sql_template": "CREATE SPACE \"{name}\" / CREATE FOLDER {path}",
+        "mechanism": "SQL",
+        "mutating": True,
+        "sql_template": 'CREATE SPACE "{name}" / CREATE FOLDER {path}',
         "parameters": [
-            {"name": "path", "type": "string", "required": True, "positional": True, "description": "Space name or dot-separated folder path"},
+            {
+                "name": "path",
+                "type": "string",
+                "required": True,
+                "positional": True,
+                "description": "Space name or dot-separated folder path",
+            },
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
     "folder.delete": {
-        "group": "folder", "command": "delete",
+        "group": "folder",
+        "command": "delete",
         "description": "Delete a catalog entity (space, folder, view, etc.). Cannot be undone.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}", "DELETE /v0/projects/{pid}/catalog/{id}"],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True},
@@ -102,7 +144,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "folder.grants": {
-        "group": "folder", "command": "grants",
+        "group": "folder",
+        "command": "grants",
         "description": "Show ACL grants on a catalog entity.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}"],
@@ -111,10 +154,10 @@ COMMAND_SCHEMAS: dict[str, dict] = {
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
-
     # -- Search (top-level) --
     "search": {
-        "group": None, "command": "search",
+        "group": None,
+        "command": "search",
         "description": "Full-text search for tables, views, and sources by keyword.",
         "mechanism": "REST",
         "endpoints": ["POST /v0/projects/{pid}/search"],
@@ -123,10 +166,10 @@ COMMAND_SCHEMAS: dict[str, dict] = {
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
-
     # -- Schema --
     "schema.describe": {
-        "group": "schema", "command": "describe",
+        "group": "schema",
+        "command": "describe",
         "description": "Get column names, data types, and nullability for a table or view.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}"],
@@ -137,7 +180,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "schema.lineage": {
-        "group": "schema", "command": "lineage",
+        "group": "schema",
+        "command": "lineage",
         "description": "Get upstream and downstream dependency graph for a table or view.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}", "GET /v0/projects/{pid}/catalog/{id}/graph"],
@@ -147,7 +191,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "schema.sample": {
-        "group": "schema", "command": "sample",
+        "group": "schema",
+        "command": "sample",
         "description": "Return sample rows from a table or view.",
         "mechanism": "SQL",
         "sql_template": "SELECT * FROM {path} LIMIT {limit}",
@@ -158,68 +203,105 @@ COMMAND_SCHEMAS: dict[str, dict] = {
             {"name": "fields", "type": "string", "required": False},
         ],
     },
-
     # -- Wiki --
     "wiki.get": {
-        "group": "wiki", "command": "get",
+        "group": "wiki",
+        "command": "get",
         "description": "Get wiki description for a catalog entity.",
         "mechanism": "REST",
-        "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}", "GET /v0/projects/{pid}/catalog/{id}/collaboration/wiki"],
+        "endpoints": [
+            "GET /v0/projects/{pid}/catalog/by-path/{path}",
+            "GET /v0/projects/{pid}/catalog/{id}/collaboration/wiki",
+        ],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
     "wiki.update": {
-        "group": "wiki", "command": "update",
+        "group": "wiki",
+        "command": "update",
         "description": "Set or update the wiki description for a catalog entity.",
-        "mechanism": "REST", "mutating": True,
-        "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}", "POST /v0/projects/{pid}/catalog/{id}/collaboration/wiki"],
+        "mechanism": "REST",
+        "mutating": True,
+        "endpoints": [
+            "GET /v0/projects/{pid}/catalog/by-path/{path}",
+            "POST /v0/projects/{pid}/catalog/{id}/collaboration/wiki",
+        ],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True},
-            {"name": "text", "type": "string", "required": True, "positional": True, "description": "Wiki text (Markdown supported)"},
+            {
+                "name": "text",
+                "type": "string",
+                "required": True,
+                "positional": True,
+                "description": "Wiki text (Markdown supported)",
+            },
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
-
     # -- Tag --
     "tag.get": {
-        "group": "tag", "command": "get",
+        "group": "tag",
+        "command": "get",
         "description": "Get tags for a catalog entity.",
         "mechanism": "REST",
-        "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}", "GET /v0/projects/{pid}/catalog/{id}/collaboration/tag"],
+        "endpoints": [
+            "GET /v0/projects/{pid}/catalog/by-path/{path}",
+            "GET /v0/projects/{pid}/catalog/{id}/collaboration/tag",
+        ],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
     "tag.update": {
-        "group": "tag", "command": "update",
+        "group": "tag",
+        "command": "update",
         "description": "Set tags on a catalog entity. Replaces all existing tags.",
-        "mechanism": "REST", "mutating": True,
-        "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}", "POST /v0/projects/{pid}/catalog/{id}/collaboration/tag"],
+        "mechanism": "REST",
+        "mutating": True,
+        "endpoints": [
+            "GET /v0/projects/{pid}/catalog/by-path/{path}",
+            "POST /v0/projects/{pid}/catalog/{id}/collaboration/tag",
+        ],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True},
-            {"name": "tags", "type": "string", "required": True, "positional": True, "description": "Comma-separated tags"},
+            {
+                "name": "tags",
+                "type": "string",
+                "required": True,
+                "positional": True,
+                "description": "Comma-separated tags",
+            },
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
-
     # -- Reflection --
     "reflection.create": {
-        "group": "reflection", "command": "create",
+        "group": "reflection",
+        "command": "create",
         "description": "Create a new reflection on a dataset.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}", "POST /v0/projects/{pid}/reflection"],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True},
-            {"name": "type", "type": "enum", "required": False, "default": "raw", "enum": ["raw", "aggregation"], "flag": "--type/-t"},
+            {
+                "name": "type",
+                "type": "enum",
+                "required": False,
+                "default": "raw",
+                "enum": ["raw", "aggregation"],
+                "flag": "--type/-t",
+            },
             {"name": "fields", "type": "string", "required": False, "flag": "--fields/-f"},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
     "reflection.list": {
-        "group": "reflection", "command": "list",
+        "group": "reflection",
+        "command": "list",
         "description": "List all reflections defined on a dataset.",
         "mechanism": "SQL",
         "sql_template": "SELECT * FROM sys.project.reflections WHERE dataset_id = '{dataset_id}'",
@@ -229,7 +311,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "reflection.get": {
-        "group": "reflection", "command": "get",
+        "group": "reflection",
+        "command": "get",
         "description": "Get detailed status of a reflection by ID.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects/{pid}/reflection/{id}"],
@@ -239,9 +322,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "reflection.refresh": {
-        "group": "reflection", "command": "refresh",
+        "group": "reflection",
+        "command": "refresh",
         "description": "Trigger an immediate refresh of a reflection.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["POST /v0/projects/{pid}/reflection/{id}/refresh"],
         "parameters": [
             {"name": "reflection_id", "type": "string", "required": True, "positional": True},
@@ -249,19 +334,21 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "reflection.delete": {
-        "group": "reflection", "command": "delete",
+        "group": "reflection",
+        "command": "delete",
         "description": "Permanently delete a reflection. Cannot be undone.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["DELETE /v0/projects/{pid}/reflection/{id}"],
         "parameters": [
             {"name": "reflection_id", "type": "string", "required": True, "positional": True},
             {"name": "dry_run", "type": "boolean", "required": False, "default": False},
         ],
     },
-
     # -- Job --
     "job.list": {
-        "group": "job", "command": "list",
+        "group": "job",
+        "command": "list",
         "description": "List recent query jobs, optionally filtered by status.",
         "mechanism": "SQL",
         "sql_template": "SELECT ... FROM sys.project.jobs WHERE ... ORDER BY submitted_ts DESC LIMIT {limit}",
@@ -273,7 +360,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "job.get": {
-        "group": "job", "command": "get",
+        "group": "job",
+        "command": "get",
         "description": "Get detailed status and metadata for a specific job.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects/{pid}/job/{id}"],
@@ -284,7 +372,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "job.profile": {
-        "group": "job", "command": "profile",
+        "group": "job",
+        "command": "profile",
         "description": "Get execution profile for a completed job.",
         "mechanism": "SQL",
         "sql_template": "SELECT ... FROM sys.project.jobs WHERE job_id = '{job_id}'",
@@ -293,10 +382,10 @@ COMMAND_SCHEMAS: dict[str, dict] = {
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
-
     # -- Engine --
     "engine.list": {
-        "group": "engine", "command": "list",
+        "group": "engine",
+        "command": "list",
         "description": "List all engines in the project.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects/{pid}/engines"],
@@ -306,7 +395,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "engine.get": {
-        "group": "engine", "command": "get",
+        "group": "engine",
+        "command": "get",
         "description": "Get details for a specific engine.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects/{pid}/engines/{id}"],
@@ -317,20 +407,30 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "engine.create": {
-        "group": "engine", "command": "create",
+        "group": "engine",
+        "command": "create",
         "description": "Create a new engine.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["POST /v0/projects/{pid}/engines"],
         "parameters": [
             {"name": "name", "type": "string", "required": True, "positional": True},
-            {"name": "size", "type": "enum", "required": False, "default": "SMALL", "enum": ["SMALL", "MEDIUM", "LARGE", "XLARGE", "XXLARGE"]},
+            {
+                "name": "size",
+                "type": "enum",
+                "required": False,
+                "default": "SMALL",
+                "enum": ["SMALL", "MEDIUM", "LARGE", "XLARGE", "XXLARGE"],
+            },
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
     "engine.update": {
-        "group": "engine", "command": "update",
+        "group": "engine",
+        "command": "update",
         "description": "Update engine configuration (name, size).",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["GET /v0/projects/{pid}/engines/{id}", "PUT /v0/projects/{pid}/engines/{id}"],
         "parameters": [
             {"name": "engine_id", "type": "string", "required": True, "positional": True},
@@ -340,9 +440,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "engine.delete": {
-        "group": "engine", "command": "delete",
+        "group": "engine",
+        "command": "delete",
         "description": "Delete an engine. Cannot be undone.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["DELETE /v0/projects/{pid}/engines/{id}"],
         "parameters": [
             {"name": "engine_id", "type": "string", "required": True, "positional": True},
@@ -351,9 +453,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "engine.enable": {
-        "group": "engine", "command": "enable",
+        "group": "engine",
+        "command": "enable",
         "description": "Enable a disabled engine.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["PUT /v0/projects/{pid}/engines/{id}/enable"],
         "parameters": [
             {"name": "engine_id", "type": "string", "required": True, "positional": True},
@@ -361,19 +465,21 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "engine.disable": {
-        "group": "engine", "command": "disable",
+        "group": "engine",
+        "command": "disable",
         "description": "Disable a running engine.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["PUT /v0/projects/{pid}/engines/{id}/disable"],
         "parameters": [
             {"name": "engine_id", "type": "string", "required": True, "positional": True},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
-
     # -- User --
     "user.list": {
-        "group": "user", "command": "list",
+        "group": "user",
+        "command": "list",
         "description": "List all users in the organization.",
         "mechanism": "REST",
         "endpoints": ["GET /v1/users"],
@@ -384,7 +490,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "user.get": {
-        "group": "user", "command": "get",
+        "group": "user",
+        "command": "get",
         "description": "Get user details by name or ID.",
         "mechanism": "REST",
         "endpoints": ["GET /v1/users/name/{userName}", "GET /v1/users/{userId}"],
@@ -395,9 +502,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "user.create": {
-        "group": "user", "command": "create",
+        "group": "user",
+        "command": "create",
         "description": "Create (invite) a new user by email address.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["POST /v1/users/invite"],
         "parameters": [
             {"name": "email", "type": "string", "required": True, "positional": True},
@@ -406,9 +515,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "user.update": {
-        "group": "user", "command": "update",
+        "group": "user",
+        "command": "update",
         "description": "Update a user's properties.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["GET /v1/users/{userId}", "PUT /v1/users/{userId}"],
         "parameters": [
             {"name": "user_id", "type": "string", "required": True, "positional": True},
@@ -417,9 +528,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "user.delete": {
-        "group": "user", "command": "delete",
+        "group": "user",
+        "command": "delete",
         "description": "Delete a user from the organization. Cannot be undone.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["DELETE /v1/users/{userId}"],
         "parameters": [
             {"name": "user_id", "type": "string", "required": True, "positional": True},
@@ -428,7 +541,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "user.whoami": {
-        "group": "user", "command": "whoami",
+        "group": "user",
+        "command": "whoami",
         "description": "Show current authenticated user info (best-effort).",
         "mechanism": "REST",
         "endpoints": ["GET /v1/users"],
@@ -437,7 +551,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "user.audit": {
-        "group": "user", "command": "audit",
+        "group": "user",
+        "command": "audit",
         "description": "Audit a user's roles and effective permissions by username.",
         "mechanism": "REST",
         "endpoints": ["GET /v1/users/name/{userName}"],
@@ -446,10 +561,10 @@ COMMAND_SCHEMAS: dict[str, dict] = {
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
-
     # -- Role --
     "role.list": {
-        "group": "role", "command": "list",
+        "group": "role",
+        "command": "list",
         "description": "List all roles in the organization.",
         "mechanism": "REST",
         "endpoints": ["GET /v1/roles"],
@@ -459,7 +574,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "role.get": {
-        "group": "role", "command": "get",
+        "group": "role",
+        "command": "get",
         "description": "Get role details by name or ID.",
         "mechanism": "REST",
         "endpoints": ["GET /v1/roles/name/{roleName}", "GET /v1/roles/{roleId}"],
@@ -470,9 +586,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "role.create": {
-        "group": "role", "command": "create",
+        "group": "role",
+        "command": "create",
         "description": "Create a new role.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["POST /v1/roles"],
         "parameters": [
             {"name": "name", "type": "string", "required": True, "positional": True},
@@ -480,9 +598,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "role.update": {
-        "group": "role", "command": "update",
+        "group": "role",
+        "command": "update",
         "description": "Update a role's name.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["GET /v1/roles/{roleId}", "PUT /v1/roles/{roleId}"],
         "parameters": [
             {"name": "role_id", "type": "string", "required": True, "positional": True},
@@ -491,9 +611,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "role.delete": {
-        "group": "role", "command": "delete",
+        "group": "role",
+        "command": "delete",
         "description": "Delete a role. Cannot be undone.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["DELETE /v1/roles/{roleId}"],
         "parameters": [
             {"name": "role_id", "type": "string", "required": True, "positional": True},
@@ -501,10 +623,10 @@ COMMAND_SCHEMAS: dict[str, dict] = {
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
-
     # -- Project --
     "project.list": {
-        "group": "project", "command": "list",
+        "group": "project",
+        "command": "list",
         "description": "List all projects in the organization.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects"],
@@ -514,7 +636,8 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "project.get": {
-        "group": "project", "command": "get",
+        "group": "project",
+        "command": "get",
         "description": "Get details for a specific project.",
         "mechanism": "REST",
         "endpoints": ["GET /v0/projects/{id}"],
@@ -525,9 +648,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "project.create": {
-        "group": "project", "command": "create",
+        "group": "project",
+        "command": "create",
         "description": "Create a new project. Automatically provisions a default 2XS engine.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["POST /v0/projects"],
         "parameters": [
             {"name": "name", "type": "string", "required": True, "positional": True},
@@ -535,9 +660,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "project.update": {
-        "group": "project", "command": "update",
+        "group": "project",
+        "command": "update",
         "description": "Update project attributes (e.g., name).",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["GET /v0/projects/{id}", "PUT /v0/projects/{id}"],
         "parameters": [
             {"name": "project_id", "type": "string", "required": True, "positional": True, "format": "uuid"},
@@ -546,9 +673,11 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         ],
     },
     "project.delete": {
-        "group": "project", "command": "delete",
+        "group": "project",
+        "command": "delete",
         "description": "Delete a project. Cannot delete the sole project in an organization.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["DELETE /v0/projects/{id}"],
         "parameters": [
             {"name": "project_id", "type": "string", "required": True, "positional": True, "format": "uuid"},
@@ -556,39 +685,61 @@ COMMAND_SCHEMAS: dict[str, dict] = {
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
-
     # -- Grant --
     "grant.get": {
-        "group": "grant", "command": "get",
+        "group": "grant",
+        "command": "get",
         "description": "Get grants for a user or role on a resource.",
         "mechanism": "REST",
         "endpoints": ["GET /v1/{scope}/{scopeId}/grants/{granteeType}/{granteeId}"],
         "parameters": [
-            {"name": "scope", "type": "string", "required": True, "positional": True, "description": "Resource scope (projects, orgs, clouds)"},
+            {
+                "name": "scope",
+                "type": "string",
+                "required": True,
+                "positional": True,
+                "description": "Resource scope (projects, orgs, clouds)",
+            },
             {"name": "scope_id", "type": "string", "required": True, "positional": True},
-            {"name": "grantee_type", "type": "string", "required": True, "positional": True, "description": "user or role"},
+            {
+                "name": "grantee_type",
+                "type": "string",
+                "required": True,
+                "positional": True,
+                "description": "user or role",
+            },
             {"name": "grantee_id", "type": "string", "required": True, "positional": True},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
     "grant.update": {
-        "group": "grant", "command": "update",
+        "group": "grant",
+        "command": "update",
         "description": "Set grants (privileges) for a user or role on a resource.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["PUT /v1/{scope}/{scopeId}/grants/{granteeType}/{granteeId}"],
         "parameters": [
             {"name": "scope", "type": "string", "required": True, "positional": True},
             {"name": "scope_id", "type": "string", "required": True, "positional": True},
             {"name": "grantee_type", "type": "string", "required": True, "positional": True},
             {"name": "grantee_id", "type": "string", "required": True, "positional": True},
-            {"name": "privileges", "type": "string", "required": True, "positional": True, "description": "Comma-separated privileges"},
+            {
+                "name": "privileges",
+                "type": "string",
+                "required": True,
+                "positional": True,
+                "description": "Comma-separated privileges",
+            },
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
     "grant.delete": {
-        "group": "grant", "command": "delete",
+        "group": "grant",
+        "command": "delete",
         "description": "Remove all grants for a user or role on a resource.",
-        "mechanism": "REST", "mutating": True,
+        "mechanism": "REST",
+        "mutating": True,
         "endpoints": ["DELETE /v1/{scope}/{scopeId}/grants/{granteeType}/{granteeId}"],
         "parameters": [
             {"name": "scope", "type": "string", "required": True, "positional": True},

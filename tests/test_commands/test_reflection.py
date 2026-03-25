@@ -21,7 +21,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from drs.commands.reflection import get_reflection, refresh, delete
+from drs.commands.reflection import delete, get_reflection, refresh
 
 
 @pytest.mark.asyncio

@@ -22,13 +22,13 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-from drs.commands.user import list_users, get_user, create_user, delete_user, whoami, audit
+from drs.commands.user import audit, create_user, delete_user, get_user, list_users, whoami
 
 
 @pytest.mark.asyncio
 async def test_list_users(mock_client) -> None:
     mock_client.list_users = AsyncMock(return_value={"data": [{"id": "u1", "name": "alice"}]})
-    result = await list_users(mock_client)
+    await list_users(mock_client)
     mock_client.list_users.assert_called_once_with(max_results=100)
 
 
@@ -48,14 +48,14 @@ async def test_get_user_falls_back_to_id(mock_client) -> None:
         side_effect=httpx.HTTPStatusError("Not Found", request=request, response=response)
     )
     mock_client.get_user = AsyncMock(return_value={"id": "u1", "name": "alice"})
-    result = await get_user(mock_client, "u1")
+    await get_user(mock_client, "u1")
     mock_client.get_user.assert_called_once_with("u1")
 
 
 @pytest.mark.asyncio
 async def test_create_user(mock_client) -> None:
     mock_client.invite_user = AsyncMock(return_value={"id": "u2", "email": "bob@example.com"})
-    result = await create_user(mock_client, "bob@example.com", role_id="role-1")
+    await create_user(mock_client, "bob@example.com", role_id="role-1")
     mock_client.invite_user.assert_called_once_with({"email": "bob@example.com", "roleId": "role-1"})
 
 
@@ -69,15 +69,13 @@ async def test_delete_user(mock_client) -> None:
 @pytest.mark.asyncio
 async def test_whoami(mock_client) -> None:
     mock_client.list_users = AsyncMock(return_value={"data": [{"id": "u1", "name": "me"}]})
-    result = await whoami(mock_client)
+    await whoami(mock_client)
     mock_client.list_users.assert_called_once_with(max_results=1)
 
 
 @pytest.mark.asyncio
 async def test_audit(mock_client) -> None:
-    mock_client.get_user_by_name = AsyncMock(return_value={
-        "id": "u1", "roles": [{"id": "r1", "name": "admin"}]
-    })
+    mock_client.get_user_by_name = AsyncMock(return_value={"id": "u1", "roles": [{"id": "r1", "name": "admin"}]})
     result = await audit(mock_client, "alice")
     assert result["username"] == "alice"
     assert result["roles"] == [{"role_id": "r1", "role_name": "admin"}]

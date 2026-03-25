@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "name": "dremio",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Dremio Cloud developer skills — SQL reference, setup wizard, dbt integration, and workflow automations powered by the drs CLI.",
   "skills": [
     "skills/dremio",

@@ -24,7 +24,6 @@ from typing import Any
 import yaml
 from pydantic import BaseModel
 
-
 DEFAULT_CONFIG_PATH = Path.home() / ".config" / "dremioai" / "config.yaml"
 DEFAULT_URI = "https://api.dremio.cloud"
 
@@ -53,7 +52,7 @@ def load_config(
     file_values: dict[str, Any] = {}
     path = config_path or DEFAULT_CONFIG_PATH
     if path.exists():
-        with open(path) as f:
+        with path.open() as f:
             raw = yaml.safe_load(f) or {}
         file_values = {
             "uri": raw.get("uri", raw.get("endpoint")),
@@ -66,9 +65,7 @@ def load_config(
     env_values: dict[str, Any] = {}
     if v := os.environ.get("DREMIO_URI"):
         env_values["uri"] = v
-    if v := os.environ.get("DREMIO_TOKEN"):
-        env_values["pat"] = v
-    elif v := os.environ.get("DREMIO_PAT"):  # legacy compat
+    if (v := os.environ.get("DREMIO_TOKEN")) or (v := os.environ.get("DREMIO_PAT")):
         env_values["pat"] = v
     if v := os.environ.get("DREMIO_PROJECT_ID"):
         env_values["project_id"] = v
