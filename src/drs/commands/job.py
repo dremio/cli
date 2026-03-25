@@ -27,7 +27,7 @@ from drs.commands.query import run_query
 from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error, validate_job_id, validate_job_state
 
-app = typer.Typer(help="List and inspect query jobs.")
+app = typer.Typer(help="List and inspect query jobs.", context_settings={"help_option_names": ["-h", "--help"]})
 
 
 async def list_jobs(client: DremioClient, status_filter: str | None = None, limit: int = 25) -> dict:

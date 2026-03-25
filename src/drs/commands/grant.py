@@ -26,7 +26,10 @@ from drs.client import DremioClient
 from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error
 
-app = typer.Typer(help="Manage grants on projects, engines, and org resources.")
+app = typer.Typer(
+    help="Manage grants on projects, engines, and org resources.",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 
 
 async def get_grants(client: DremioClient, scope: str, scope_id: str, grantee_type: str, grantee_id: str) -> dict:

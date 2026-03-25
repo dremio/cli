@@ -26,7 +26,7 @@ from drs.client import DremioClient
 from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error
 
-app = typer.Typer(help="Manage Dremio Cloud users.")
+app = typer.Typer(help="Manage Dremio Cloud users.", context_settings={"help_option_names": ["-h", "--help"]})
 
 
 async def list_users(client: DremioClient, max_results: int = 100) -> dict:

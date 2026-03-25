@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import sys
 from pathlib import Path
 
@@ -27,12 +28,15 @@ import typer
 
 from drs.auth import DrsConfig, load_config
 from drs.client import DremioClient
-from drs.commands import engine, folder, grant, job, project, query, reflection, role, schema, tag, user, wiki
+from drs.commands import chat, engine, folder, grant, job, project, query, reflection, role, schema, tag, user, wiki
+
+CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
 app = typer.Typer(
     name="dremio",
     help="Developer CLI for Dremio Cloud.",
     no_args_is_help=True,
+    context_settings=CONTEXT_SETTINGS,
 )
 
 # Register command groups
@@ -48,6 +52,7 @@ app.add_typer(user.app, name="user")
 app.add_typer(role.app, name="role")
 app.add_typer(grant.app, name="grant")
 app.add_typer(project.app, name="project")
+app.add_typer(chat.app, name="chat")
 
 # Global state for config
 _config: DrsConfig | None = None
@@ -62,8 +67,29 @@ def main(
     uri: str | None = typer.Option(
         None, "--uri", help="Dremio API base URI (e.g., https://api.dremio.cloud, https://api.eu.dremio.cloud)"
     ),
+    verbose: int = typer.Option(
+        0, "--verbose", "-v", count=True, help="Increase logging verbosity (-v for debug, -vv for trace)"
+    ),
 ) -> None:
     """Global options for dremio CLI."""
+    # Configure logging based on verbosity
+    if verbose >= 2:
+        log_level = logging.DEBUG
+        # Also enable httpx/httpcore debug logging for -vv
+        logging.getLogger("httpx").setLevel(logging.DEBUG)
+        logging.getLogger("httpcore").setLevel(logging.DEBUG)
+    elif verbose == 1:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.WARNING
+
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        datefmt="%H:%M:%S",
+        stream=sys.stderr,
+    )
+
     global _cli_opts
     _cli_opts = {
         "config_path": Path(config) if config else None,

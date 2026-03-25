@@ -17,8 +17,11 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import TYPE_CHECKING, Any
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     import httpx
@@ -172,7 +175,10 @@ class DremioAPIError(Exception):
         self.status_code = status_code
         self.message = message
         self.url = url
-        super().__init__(f"HTTP {status_code}: {message}")
+        text = f"HTTP {status_code}: {message}"
+        if url:
+            text += f"\n  URL: {url}"
+        super().__init__(text)
 
     def to_dict(self) -> dict:
         d: dict[str, Any] = {"error": self.message, "status_code": self.status_code}
@@ -186,17 +192,34 @@ def handle_api_error(exc: httpx.HTTPStatusError) -> DremioAPIError:
     status = exc.response.status_code
     url = str(exc.request.url)
 
+    # Always try to extract the server's error message first
+    server_msg = ""
+    try:
+        body = exc.response.json()
+        server_msg = body.get("errorMessage", body.get("message", ""))
+    except Exception:
+        server_msg = exc.response.text or ""
+
     if status == 401:
-        msg = "Authentication failed — check your PAT token"
+        hint = "Authentication failed — check your PAT token"
     elif status == 403:
-        msg = "Permission denied — insufficient privileges for this operation"
+        hint = "Permission denied — insufficient privileges for this operation"
     elif status == 404:
-        msg = "Not found — check that the path or ID exists"
+        hint = "Not found — check that the path or ID exists"
     else:
-        try:
-            body = exc.response.json()
-            msg = body.get("errorMessage", body.get("message", str(exc)))
-        except Exception:
-            msg = exc.response.text or str(exc)
+        hint = ""
+
+    # Log the full response for debugging
+    logger.debug(
+        "API error: %s %s → %d\n  Response body: %s",
+        exc.request.method,
+        url,
+        status,
+        exc.response.text[:1000],
+    )
+
+    # Combine: server message + hint (if any), always include URL
+    parts = [p for p in (server_msg, hint) if p]
+    msg = " — ".join(parts) if parts else str(exc)
 
     return DremioAPIError(status, msg, url)

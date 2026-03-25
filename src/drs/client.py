@@ -108,24 +108,32 @@ class DremioClient:
         raise last_exc  # type: ignore[misc]
 
     async def _get(self, url: str, params: dict | None = None) -> Any:
+        logger.debug("GET %s params=%s", url, params)
         resp = await self._request_with_retry("GET", url, params=params)
+        logger.debug("GET %s → %d (%d bytes)", url, resp.status_code, len(resp.content))
         resp.raise_for_status()
         return resp.json()
 
     async def _post(self, url: str, json: dict | None = None) -> Any:
+        logger.debug("POST %s body=%s", url, json)
         resp = await self._request_with_retry("POST", url, json=json)
+        logger.debug("POST %s → %d (%d bytes)", url, resp.status_code, len(resp.content))
         resp.raise_for_status()
         return resp.json()
 
     async def _put(self, url: str, json: dict | None = None) -> Any:
+        logger.debug("PUT %s body=%s", url, json)
         resp = await self._request_with_retry("PUT", url, json=json)
+        logger.debug("PUT %s → %d (%d bytes)", url, resp.status_code, len(resp.content))
         resp.raise_for_status()
         if resp.content:
             return resp.json()
         return {"status": "ok"}
 
     async def _delete(self, url: str, params: dict | None = None) -> Any:
+        logger.debug("DELETE %s params=%s", url, params)
         resp = await self._request_with_retry("DELETE", url, params=params)
+        logger.debug("DELETE %s → %d (%d bytes)", url, resp.status_code, len(resp.content))
         resp.raise_for_status()
         if resp.content:
             return resp.json()
@@ -308,6 +316,91 @@ class DremioClient:
 
     async def delete_role(self, role_id: str) -> dict:
         return await self._delete(self._v1(f"/roles/{role_id}"))
+
+    # -- Agent / Chat (SSE) --
+
+    def _agent(self, path: str) -> str:
+        """Agent API URL: /v1/projects/{pid}/agent/..."""
+        return f"{self.config.uri}/v1/projects/{self.config.project_id}/agent{path}"
+
+    async def create_conversation(self, body: dict) -> dict:
+        """POST /agent/conversations — start a new conversation."""
+        return await self._post(self._agent("/conversations"), json=body)
+
+    async def send_conversation_message(self, conversation_id: str, body: dict) -> dict:
+        """POST /agent/conversations/{id}/messages — send a message or approval."""
+        return await self._post(
+            self._agent(f"/conversations/{conversation_id}/messages"),
+            json=body,
+        )
+
+    async def stream_run(self, conversation_id: str, run_id: str) -> httpx.Response:
+        """GET /agent/conversations/{id}/runs/{runId} — returns raw SSE response.
+
+        Returns the raw ``httpx.Response`` with ``stream=True``.  Caller must
+        iterate ``resp.aiter_bytes()`` and close the response via ``async with``.
+
+        We explicitly disable compression (``Accept-Encoding: identity``) so
+        that reverse proxies (GCP LB, envoy, etc.) do **not** gzip-buffer the
+        event stream — otherwise every SSE event is held until the stream ends.
+        """
+        url = self._agent(f"/conversations/{conversation_id}/runs/{run_id}")
+        logger.debug("SSE GET %s", url)
+        resp = await self._client.send(
+            self._client.build_request(
+                "GET",
+                url,
+                headers={
+                    "Accept": "text/event-stream",
+                    "Accept-Encoding": "identity",
+                    "Cache-Control": "no-cache",
+                },
+            ),
+            stream=True,
+        )
+        logger.debug("SSE GET %s → %d", url, resp.status_code)
+        resp.raise_for_status()
+        return resp
+
+    async def list_conversations(
+        self,
+        limit: int = 25,
+        page_token: str | None = None,
+    ) -> dict:
+        """GET /agent/conversations"""
+        params: dict[str, str | int] = {"maxResults": limit}
+        if page_token:
+            params["pageToken"] = page_token
+        return await self._get(self._agent("/conversations"), params=params)
+
+    async def get_conversation_messages(
+        self,
+        conversation_id: str,
+        limit: int = 50,
+        page_token: str | None = None,
+    ) -> dict:
+        """GET /agent/conversations/{id}/messages"""
+        params: dict[str, str | int] = {"maxResults": limit}
+        if page_token:
+            params["pageToken"] = page_token
+        return await self._get(
+            self._agent(f"/conversations/{conversation_id}/messages"),
+            params=params,
+        )
+
+    async def delete_conversation(self, conversation_id: str) -> dict:
+        """DELETE /agent/conversations/{id}"""
+        return await self._delete(self._agent(f"/conversations/{conversation_id}"))
+
+    async def cancel_conversation_run(
+        self,
+        conversation_id: str,
+        run_id: str,
+    ) -> dict:
+        """POST /agent/conversations/{id}/runs/{runId}:cancel"""
+        return await self._post(
+            self._agent(f"/conversations/{conversation_id}/runs/{run_id}:cancel"),
+        )
 
     # -- Grants (v1) --
 

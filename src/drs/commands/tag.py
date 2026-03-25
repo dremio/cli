@@ -26,7 +26,9 @@ from drs.client import DremioClient
 from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error, parse_path
 
-app = typer.Typer(help="Get and update tags on catalog entities.")
+app = typer.Typer(
+    help="Get and update tags on catalog entities.", context_settings={"help_option_names": ["-h", "--help"]}
+)
 
 
 async def get_tags(client: DremioClient, path: str) -> dict:

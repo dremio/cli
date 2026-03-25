@@ -27,7 +27,7 @@ from drs.client import DremioClient
 from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error
 
-app = typer.Typer(help="Run SQL queries against Dremio.")
+app = typer.Typer(help="Run SQL queries against Dremio.", context_settings={"help_option_names": ["-h", "--help"]})
 
 TERMINAL_STATES = {"COMPLETED", "FAILED", "CANCELED", "CANCELLED"}
 POLL_INTERVAL = 1.0
