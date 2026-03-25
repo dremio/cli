@@ -32,12 +32,17 @@ Dremio Cloud has a powerful REST API and rich system tables, but no official CLI
 
 ### 1. Install
 
-```bash
-# Install from PyPI (recommended)
-pip install dremio-cli
+The package name is **`dremio-cli`** (not `dremio-client`, which is an unrelated third-party package).
 
-# Or with uv
+```bash
+# Recommended — isolated install, no venv needed
+pipx install dremio-cli
+
+# Or with uv (fast, also isolated)
 uv tool install dremio-cli
+
+# Or with pip (requires a virtual environment on modern Python)
+pip install dremio-cli
 
 # Or install from source
 git clone https://github.com/dremio/cli.git
@@ -47,6 +52,10 @@ uv tool install .
 # Or for development (editable install)
 uv sync
 ```
+
+> **Tip:** On macOS and recent Linux distros, `pip install` into the system Python is blocked
+> (`externally-managed-environment` error). Use `pipx` or `uv tool install` instead — they
+> automatically create an isolated environment for you.
 
 After install, verify the binary is available:
 
