@@ -28,9 +28,9 @@ import typer
 
 from drs.auth import DrsConfig, load_config
 from drs.client import DremioClient
+from drs.commands import chat, engine, folder, grant, job, project, query, reflection, role, schema, tag, user, wiki
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
-from drs.commands import engine, folder, grant, job, project, query, reflection, role, schema, tag, user, wiki
 
 app = typer.Typer(
     name="dremio",
@@ -61,11 +61,15 @@ _cli_opts: dict = {}
 
 @app.callback()
 def main(
-    config: Optional[str] = typer.Option(None, "--config", "-c", help="Path to config file"),
-    token: Optional[str] = typer.Option(None, "--token", help="Dremio personal access token (PAT)"),
-    project_id: Optional[str] = typer.Option(None, "--project-id", help="Dremio Cloud project ID"),
-    uri: Optional[str] = typer.Option(None, "--uri", help="Dremio API base URI (e.g., https://api.dremio.cloud, https://api.eu.dremio.cloud)"),
-    verbose: int = typer.Option(0, "--verbose", "-v", count=True, help="Increase logging verbosity (-v for debug, -vv for trace)"),
+    config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
+    token: str | None = typer.Option(None, "--token", help="Dremio personal access token (PAT)"),
+    project_id: str | None = typer.Option(None, "--project-id", help="Dremio Cloud project ID"),
+    uri: str | None = typer.Option(
+        None, "--uri", help="Dremio API base URI (e.g., https://api.dremio.cloud, https://api.eu.dremio.cloud)"
+    ),
+    verbose: int = typer.Option(
+        0, "--verbose", "-v", count=True, help="Increase logging verbosity (-v for debug, -vv for trace)"
+    ),
 ) -> None:
     """Global options for dremio CLI."""
     # Configure logging based on verbosity

@@ -22,12 +22,12 @@ from unittest.mock import AsyncMock
 import pytest
 
 from drs.commands.chat import (
-    create_conversation,
-    send_message,
-    list_conversations,
-    get_messages,
-    delete_conversation,
     cancel_run,
+    create_conversation,
+    delete_conversation,
+    get_messages,
+    list_conversations,
+    send_message,
 )
 
 

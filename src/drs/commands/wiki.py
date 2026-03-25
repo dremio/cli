@@ -26,7 +26,10 @@ from drs.client import DremioClient
 from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error, parse_path
 
-app = typer.Typer(help="Get and update wiki descriptions on catalog entities.", context_settings={"help_option_names": ["-h", "--help"]})
+app = typer.Typer(
+    help="Get and update wiki descriptions on catalog entities.",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 
 
 async def get_wiki(client: DremioClient, path: str) -> dict:

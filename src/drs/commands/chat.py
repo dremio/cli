@@ -18,11 +18,13 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import sys
-from enum import Enum
-from typing import Any, Optional
+from enum import StrEnum
+from pathlib import Path
+from typing import Any
 
 import httpx
 import typer
@@ -51,7 +53,7 @@ app = typer.Typer(help="Chat with the Dremio AI Agent.", context_settings={"help
 # ---------------------------------------------------------------------------
 
 
-class ChatFormat(str, Enum):
+class ChatFormat(StrEnum):
     json = "json"
     table = "table"
 
@@ -64,7 +66,7 @@ def _chat_output(data: Any, fmt: ChatFormat) -> None:
         console.print(RichJSON(json.dumps(data, indent=2, default=str)))
         return
 
-    rows = data.get("data", data.get("messages", []))
+    rows = data.get("data", data.get("conversations", data.get("messages", [])))
     if not rows:
         console.print("[dim]No results.[/]")
         return
@@ -153,7 +155,9 @@ def _render_generic_table(console: Console, rows: list[dict]) -> None:
 
 
 async def create_conversation(
-    client: DremioClient, text: str, model: str | None = None,
+    client: DremioClient,
+    text: str,
+    model: str | None = None,
 ) -> dict:
     """POST /agent/conversations — start a new conversation."""
     body: dict[str, Any] = {"prompt": {"text": text}}
@@ -187,7 +191,9 @@ async def send_message(
 
 
 async def stream_run(
-    client: DremioClient, conversation_id: str, run_id: str,
+    client: DremioClient,
+    conversation_id: str,
+    run_id: str,
 ):
     """GET /agent/conversations/{id}/runs/{runId} as SSE — yields parsed events."""
     try:
@@ -211,7 +217,9 @@ async def list_conversations(client: DremioClient, limit: int = 25) -> dict:
 
 
 async def get_messages(
-    client: DremioClient, conversation_id: str, limit: int = 50,
+    client: DremioClient,
+    conversation_id: str,
+    limit: int = 50,
 ) -> dict:
     """GET /agent/conversations/{id}/messages"""
     try:
@@ -229,7 +237,9 @@ async def delete_conversation(client: DremioClient, conversation_id: str) -> dic
 
 
 async def cancel_run(
-    client: DremioClient, conversation_id: str, run_id: str,
+    client: DremioClient,
+    conversation_id: str,
+    run_id: str,
 ) -> dict:
     """POST /agent/conversations/{id}/runs/{runId}:cancel"""
     try:
@@ -326,14 +336,18 @@ async def dispatch_events(
                 else:
                     decisions = []
                     for tool in tools:
-                        decisions.append({
-                            "callId": tool.get("callId", tool.get("id", "")),
-                            "decision": "approved" if auto_approve else "denied",
-                        })
+                        decisions.append(
+                            {
+                                "callId": tool.get("callId", tool.get("id", "")),
+                                "decision": "approved" if auto_approve else "denied",
+                            }
+                        )
                     approvals = {"approvalNonce": nonce, "toolDecisions": decisions}
 
                 resp = await send_message(
-                    client, conversation_id, approvals=approvals,
+                    client,
+                    conversation_id,
+                    approvals=approvals,
                 )
                 _, new_run_id = _extract_ids(resp)
                 if new_run_id:
@@ -341,8 +355,12 @@ async def dispatch_events(
                     renderer.start_spinner()
                     first_model_chunk = True
                     return await dispatch_events(
-                        client, renderer, conversation_id, run_id,
-                        auto_approve=auto_approve, interactive=interactive,
+                        client,
+                        renderer,
+                        conversation_id,
+                        run_id,
+                        auto_approve=auto_approve,
+                        interactive=interactive,
                         log_file=log_file,
                     )
 
@@ -385,8 +403,12 @@ async def chat_repl(
     if conv_id and run_id:
         try:
             run_id = await dispatch_events(
-                client, renderer, conv_id, run_id,
-                interactive=True, log_file=log_file,
+                client,
+                renderer,
+                conv_id,
+                run_id,
+                interactive=True,
+                log_file=log_file,
             )
         except DremioAPIError as exc:
             renderer.render_error("api", str(exc))
@@ -409,7 +431,7 @@ async def chat_repl(
 
             if cmd == "/quit":
                 break
-            elif cmd == "/help":
+            if cmd == "/help":
                 renderer.print_help()
             elif cmd == "/new":
                 conv_id = None
@@ -489,16 +511,18 @@ async def chat_repl(
             if run_id:
                 try:
                     run_id = await dispatch_events(
-                        client, renderer, conv_id, run_id,
-                        interactive=True, log_file=log_file,
+                        client,
+                        renderer,
+                        conv_id,
+                        run_id,
+                        interactive=True,
+                        log_file=log_file,
                     )
                 except KeyboardInterrupt:
                     renderer.stop_spinner()
                     renderer.console.print("\n[dim]Cancelling...[/]")
-                    try:
+                    with contextlib.suppress(DremioAPIError):
                         await cancel_run(client, conv_id, run_id)
-                    except DremioAPIError:
-                        pass
             renderer.print_separator()
         except DremioAPIError as exc:
             renderer.render_error("api", str(exc))
@@ -533,8 +557,12 @@ async def chat_oneshot(
 
     if run_id:
         await dispatch_events(
-            client, renderer, conversation_id, run_id,
-            auto_approve=auto_approve, interactive=False,
+            client,
+            renderer,
+            conversation_id,
+            run_id,
+            auto_approve=auto_approve,
+            interactive=False,
             log_file=log_file,
         )
     else:
@@ -552,34 +580,36 @@ async def chat_oneshot(
 def _get_client() -> DremioClient:
     # Deferred import to avoid circular dependency: cli.py imports this module.
     from drs.cli import get_client
+
     return get_client()
 
 
 @app.callback(invoke_without_command=True)
 def chat_main(
     ctx: typer.Context,
-    message: Optional[str] = typer.Option(None, "--message", "-m", help="Send a single message (non-interactive mode)"),
-    conversation: Optional[str] = typer.Option(None, "--conversation", "-C", help="Resume an existing conversation by ID"),
+    message: str | None = typer.Option(None, "--message", "-m", help="Send a single message (non-interactive mode)"),
+    conversation: str | None = typer.Option(None, "--conversation", "-C", help="Resume an existing conversation by ID"),
     auto_approve: bool = typer.Option(False, "--auto-approve", help="Auto-approve tool calls (non-interactive only)"),
-    log_file: Optional[str] = typer.Option(None, "--log-file", help="Path to JSON-lines event log file"),
-    model: Optional[str] = typer.Option(None, "--model", help="Model override"),
+    log_file: str | None = typer.Option(None, "--log-file", help="Path to JSON-lines event log file"),
+    model: str | None = typer.Option(None, "--model", help="Model override"),
 ) -> None:
     """Chat with the Dremio AI Agent. Launches interactive REPL by default."""
     if ctx.invoked_subcommand is not None:
         return
 
     client = _get_client()
-    log_fh = None
-    if log_file:
-        log_fh = open(log_file, "a")
 
     async def _run() -> None:
+        log_fh = None
         try:
+            if log_file:
+                log_fh = Path(log_file).open("a")  # noqa: SIM115
             if message is not None:
                 # Read from stdin if message is "-"
                 msg = sys.stdin.read().strip() if message == "-" else message
                 await chat_oneshot(
-                    client, msg,
+                    client,
+                    msg,
                     conversation_id=conversation,
                     auto_approve=auto_approve,
                     model=model,
@@ -588,7 +618,8 @@ def chat_main(
             else:
                 renderer = ChatRenderer()
                 await chat_repl(
-                    client, renderer,
+                    client,
+                    renderer,
                     conv_id=conversation,
                     model=model,
                     log_file=log_fh,

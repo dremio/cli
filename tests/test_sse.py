@@ -44,10 +44,7 @@ async def test_parse_single_event():
 async def test_parse_multiple_events():
     data1 = {"chunkType": "model", "text": "a"}
     data2 = {"chunkType": "endOfStream"}
-    raw = (
-        f"data: {json.dumps(data1)}\n\n"
-        f"data: {json.dumps(data2)}\n\n"
-    ).encode()
+    raw = (f"data: {json.dumps(data1)}\n\ndata: {json.dumps(data2)}\n\n").encode()
     events = [e async for e in parse_sse_stream(_bytes_iter([raw]))]
     assert len(events) == 2
     assert events[0]["data"] == data1
@@ -89,7 +86,7 @@ async def test_partial_chunks():
 @pytest.mark.asyncio
 async def test_multiline_data():
     """Multiple data: lines for one event get joined."""
-    raw = b"data: {\"a\":\n" b"data: 1}\n\n"
+    raw = b'data: {"a":\ndata: 1}\n\n'
     events = [e async for e in parse_sse_stream(_bytes_iter([raw]))]
     assert len(events) == 1
     # Multiline data lines get joined with newline, parsed as raw if not valid JSON
@@ -107,6 +104,16 @@ async def test_flush_on_stream_end():
 
 
 @pytest.mark.asyncio
+async def test_flush_no_trailing_newline():
+    """Data without any trailing newline gets flushed at end of stream."""
+    data = {"chunkType": "endOfStream"}
+    raw = f"data: {json.dumps(data)}".encode()  # No newline at all
+    events = [e async for e in parse_sse_stream(_bytes_iter([raw]))]
+    assert len(events) == 1
+    assert events[0]["data"] == data
+
+
+@pytest.mark.asyncio
 async def test_empty_stream():
     events = [e async for e in parse_sse_stream(_bytes_iter([]))]
     assert events == []
@@ -117,10 +124,7 @@ async def test_event_type_resets_after_event():
     """Event type resets to 'message' after each event."""
     data1 = {"a": 1}
     data2 = {"b": 2}
-    raw = (
-        f"event: custom\ndata: {json.dumps(data1)}\n\n"
-        f"data: {json.dumps(data2)}\n\n"
-    ).encode()
+    raw = (f"event: custom\ndata: {json.dumps(data1)}\n\ndata: {json.dumps(data2)}\n\n").encode()
     events = [e async for e in parse_sse_stream(_bytes_iter([raw]))]
     assert events[0]["event"] == "custom"
     assert events[1]["event"] == "message"

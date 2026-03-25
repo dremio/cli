@@ -27,7 +27,9 @@ from drs.commands.query import run_query
 from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error, parse_path, quote_path_sql
 
-app = typer.Typer(help="Manage spaces and folders in the Dremio catalog.", context_settings={"help_option_names": ["-h", "--help"]})
+app = typer.Typer(
+    help="Manage spaces and folders in the Dremio catalog.", context_settings={"help_option_names": ["-h", "--help"]}
+)
 
 
 async def list_catalog(client: DremioClient) -> dict:

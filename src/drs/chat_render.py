@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import sys
 import threading
@@ -101,7 +100,11 @@ class ChatRenderer:
     # -- Tool events --
 
     def render_tool_request(
-        self, call_id: str, name: str, arguments: dict | None = None, title: str | None = None,
+        self,
+        call_id: str,
+        name: str,
+        arguments: dict | None = None,
+        title: str | None = None,
     ) -> None:
         """Show a tool call request in a bordered panel."""
         display_name = title or name
@@ -177,10 +180,12 @@ class ChatRenderer:
             except (EOFError, KeyboardInterrupt):
                 answer = "n"
             approved = answer in ("", "y", "yes")
-            decisions.append({
-                "callId": tool_id,
-                "decision": "approved" if approved else "denied",
-            })
+            decisions.append(
+                {
+                    "callId": tool_id,
+                    "decision": "approved" if approved else "denied",
+                }
+            )
         return {
             "approvalNonce": nonce,
             "toolDecisions": decisions,
@@ -252,7 +257,11 @@ class PlainRenderer:
             sys.stdout.flush()
 
     def render_tool_request(
-        self, call_id: str, name: str, arguments: dict | None = None, title: str | None = None,
+        self,
+        call_id: str,
+        name: str,
+        arguments: dict | None = None,
+        title: str | None = None,
     ) -> None:
         self._stderr_console.print(
             Text(f"  ⚙ {title or name}", style="dim cyan"),

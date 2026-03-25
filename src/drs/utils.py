@@ -212,7 +212,10 @@ def handle_api_error(exc: httpx.HTTPStatusError) -> DremioAPIError:
     # Log the full response for debugging
     logger.debug(
         "API error: %s %s → %d\n  Response body: %s",
-        exc.request.method, url, status, exc.response.text[:1000],
+        exc.request.method,
+        url,
+        status,
+        exc.response.text[:1000],
     )
 
     # Combine: server message + hint (if any), always include URL

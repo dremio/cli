@@ -27,7 +27,9 @@ from drs.commands.query import run_query
 from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error, parse_path
 
-app = typer.Typer(help="Manage reflections (materialized views).", context_settings={"help_option_names": ["-h", "--help"]})
+app = typer.Typer(
+    help="Manage reflections (materialized views).", context_settings={"help_option_names": ["-h", "--help"]}
+)
 
 
 async def create(client: DremioClient, path: str, rtype: str, display_fields: list[str] | None = None) -> dict:

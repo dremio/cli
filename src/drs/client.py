@@ -330,7 +330,8 @@ class DremioClient:
     async def send_conversation_message(self, conversation_id: str, body: dict) -> dict:
         """POST /agent/conversations/{id}/messages — send a message or approval."""
         return await self._post(
-            self._agent(f"/conversations/{conversation_id}/messages"), json=body,
+            self._agent(f"/conversations/{conversation_id}/messages"),
+            json=body,
         )
 
     async def stream_run(self, conversation_id: str, run_id: str) -> httpx.Response:
@@ -347,7 +348,8 @@ class DremioClient:
         logger.debug("SSE GET %s", url)
         resp = await self._client.send(
             self._client.build_request(
-                "GET", url,
+                "GET",
+                url,
                 headers={
                     "Accept": "text/event-stream",
                     "Accept-Encoding": "identity",
@@ -361,7 +363,9 @@ class DremioClient:
         return resp
 
     async def list_conversations(
-        self, limit: int = 25, page_token: str | None = None,
+        self,
+        limit: int = 25,
+        page_token: str | None = None,
     ) -> dict:
         """GET /agent/conversations"""
         params: dict[str, str | int] = {"maxResults": limit}
@@ -370,14 +374,18 @@ class DremioClient:
         return await self._get(self._agent("/conversations"), params=params)
 
     async def get_conversation_messages(
-        self, conversation_id: str, limit: int = 50, page_token: str | None = None,
+        self,
+        conversation_id: str,
+        limit: int = 50,
+        page_token: str | None = None,
     ) -> dict:
         """GET /agent/conversations/{id}/messages"""
         params: dict[str, str | int] = {"maxResults": limit}
         if page_token:
             params["pageToken"] = page_token
         return await self._get(
-            self._agent(f"/conversations/{conversation_id}/messages"), params=params,
+            self._agent(f"/conversations/{conversation_id}/messages"),
+            params=params,
         )
 
     async def delete_conversation(self, conversation_id: str) -> dict:
@@ -385,7 +393,9 @@ class DremioClient:
         return await self._delete(self._agent(f"/conversations/{conversation_id}"))
 
     async def cancel_conversation_run(
-        self, conversation_id: str, run_id: str,
+        self,
+        conversation_id: str,
+        run_id: str,
     ) -> dict:
         """POST /agent/conversations/{id}/runs/{runId}:cancel"""
         return await self._post(

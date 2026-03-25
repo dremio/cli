@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import json
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 
 async def parse_sse_stream(byte_stream: AsyncIterator[bytes]) -> AsyncIterator[dict]:
@@ -55,9 +55,18 @@ async def parse_sse_stream(byte_stream: AsyncIterator[bytes]) -> AsyncIterator[d
                 continue
 
             if line.startswith("event:"):
-                event_type = line[len("event:"):].strip()
+                event_type = line[len("event:") :].strip()
             elif line.startswith("data:"):
-                data_lines.append(line[len("data:"):].strip())
+                data_lines.append(line[len("data:") :].strip())
+
+    # Flush any remaining content left in buf (server closed without trailing \n)
+    if buf:
+        for line in buf.split("\n"):
+            line = line.rstrip("\r")
+            if line.startswith("data:"):
+                data_lines.append(line[len("data:") :].strip())
+            elif line.startswith("event:"):
+                event_type = line[len("event:") :].strip()
 
     # Flush any remaining data (stream ended without trailing blank line)
     if data_lines:
