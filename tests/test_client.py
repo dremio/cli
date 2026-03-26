@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import httpx
 import pytest
 
 from drs.auth import DrsConfig
@@ -100,3 +101,41 @@ class TestClientHeaders:
 
     def test_content_type(self, client: DremioClient) -> None:
         assert client._client.headers["content-type"] == "application/json"
+
+
+class TestSQLBreadcrumb:
+    @pytest.mark.asyncio
+    async def test_submit_sql_prepends_breadcrumb(self, client: DremioClient) -> None:
+        """SQL submitted via the client must carry the dremio-cli breadcrumb comment."""
+        captured: dict = {}
+
+        async def _capture(request: httpx.Request) -> httpx.Response:
+            import json
+
+            captured["body"] = json.loads(request.content)
+            return httpx.Response(200, json={"id": "job-1"})
+
+        client._client = httpx.AsyncClient(transport=httpx.MockTransport(_capture))
+
+        await client.submit_sql("SELECT 1")
+
+        assert captured["body"]["sql"] == "/* dremio-cli: submitter=cli */ SELECT 1"
+
+    @pytest.mark.asyncio
+    async def test_submit_sql_breadcrumb_with_context(self, client: DremioClient) -> None:
+        """Breadcrumb should be present even when a schema context is provided."""
+        captured: dict = {}
+
+        async def _capture(request: httpx.Request) -> httpx.Response:
+            import json
+
+            captured["body"] = json.loads(request.content)
+            return httpx.Response(200, json={"id": "job-2"})
+
+        client._client = httpx.AsyncClient(transport=httpx.MockTransport(_capture))
+
+        await client.submit_sql("SELECT * FROM orders", context=["myspace"])
+
+        assert captured["body"]["sql"].startswith("/* dremio-cli: submitter=cli */")
+        assert "SELECT * FROM orders" in captured["body"]["sql"]
+        assert captured["body"]["context"] == ["myspace"]

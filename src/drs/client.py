@@ -164,7 +164,7 @@ class DremioClient:
 
     async def submit_sql(self, sql: str, context: list[str] | None = None) -> dict:
         """Submit a SQL query. Returns job metadata including job_id."""
-        body: dict[str, Any] = {"sql": sql}
+        body: dict[str, Any] = {"sql": f"/* dremio-cli: submitter=cli */ {sql}"}
         if context:
             body["context"] = context
         return await self._post(self._v0("/sql"), json=body)
