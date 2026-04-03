@@ -79,13 +79,15 @@ def write_config(uri: str, pat: str, project_id: str, config_path: Path) -> None
 def _prompt_region() -> tuple[str, str]:
     """Prompt for region selection. Returns (api_uri, app_url)."""
     console.print()
-    console.print(Panel(
-        "[bold]Step 1: Choose your region[/bold]\n\n"
-        "  [cyan]1[/cyan]) US  (api.dremio.cloud) — default\n"
-        "  [cyan]2[/cyan]) EU  (api.eu.dremio.cloud)",
-        title="Region",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            "[bold]Step 1: Choose your region[/bold]\n\n"
+            "  [cyan]1[/cyan]) US  (api.dremio.cloud) — default\n"
+            "  [cyan]2[/cyan]) EU  (api.eu.dremio.cloud)",
+            title="Region",
+            border_style="blue",
+        )
+    )
     choice = typer.prompt("Enter 1 or 2", default="1").strip()
     if choice not in REGIONS:
         console.print("[yellow]Invalid choice, defaulting to US.[/yellow]")
@@ -98,16 +100,18 @@ def _prompt_region() -> tuple[str, str]:
 def _prompt_pat(app_url: str) -> str:
     """Prompt for Personal Access Token with step-by-step instructions."""
     console.print()
-    console.print(Panel(
-        "[bold]Step 2: Create a Personal Access Token (PAT)[/bold]\n\n"
-        f"  1. Open [link={app_url}]{app_url}[/link] and sign in\n"
-        "  2. Click your profile icon (bottom-left) → [bold]Account Settings[/bold]\n"
-        "  3. Go to [bold]Personal Access Tokens[/bold]\n"
-        "  4. Click [bold]New Token[/bold], give it a name, and copy the token\n\n"
-        "[dim]The token starts with [bold]dremio_pat_[/bold] and will only be shown once.[/dim]",
-        title="Personal Access Token",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            "[bold]Step 2: Create a Personal Access Token (PAT)[/bold]\n\n"
+            f"  1. Open [link={app_url}]{app_url}[/link] and sign in\n"
+            "  2. Click your profile icon (bottom-left) → [bold]Account Settings[/bold]\n"
+            "  3. Go to [bold]Personal Access Tokens[/bold]\n"
+            "  4. Click [bold]New Token[/bold], give it a name, and copy the token\n\n"
+            "[dim]The token starts with [bold]dremio_pat_[/bold] and will only be shown once.[/dim]",
+            title="Personal Access Token",
+            border_style="blue",
+        )
+    )
     while True:
         pat = typer.prompt("Paste your PAT", hide_input=True).strip()
         if pat:
@@ -118,16 +122,18 @@ def _prompt_pat(app_url: str) -> str:
 def _prompt_project_id(app_url: str) -> str:
     """Prompt for Project ID with step-by-step instructions."""
     console.print()
-    console.print(Panel(
-        "[bold]Step 3: Find your Project ID[/bold]\n\n"
-        f"  1. Open [link={app_url}]{app_url}[/link]\n"
-        "  2. Select your project from the top-left dropdown\n"
-        "  3. Go to [bold]Project Settings[/bold] → [bold]General[/bold]\n"
-        "  4. Copy the [bold]Project ID[/bold] (a UUID like [dim]a1b2c3d4-...[/dim])\n\n"
-        "[dim]Tip: The project ID is also visible in the URL bar.[/dim]",
-        title="Project ID",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            "[bold]Step 3: Find your Project ID[/bold]\n\n"
+            f"  1. Open [link={app_url}]{app_url}[/link]\n"
+            "  2. Select your project from the top-left dropdown\n"
+            "  3. Go to [bold]Project Settings[/bold] → [bold]General[/bold]\n"
+            "  4. Copy the [bold]Project ID[/bold] (a UUID like [dim]a1b2c3d4-...[/dim])\n\n"
+            "[dim]Tip: The project ID is also visible in the URL bar.[/dim]",
+            title="Project ID",
+            border_style="blue",
+        )
+    )
     while True:
         project_id = typer.prompt("Paste your Project ID").strip()
         if project_id:
@@ -154,15 +160,17 @@ def setup_command(
 
     # Welcome
     console.print()
-    console.print(Panel(
-        "This wizard will help you connect the Dremio CLI to your Dremio Cloud account.\n\n"
-        "You'll need:\n"
-        "  • A [bold]Dremio Cloud account[/bold] (sign up at [link=https://app.dremio.cloud]app.dremio.cloud[/link])\n"
-        "  • A [bold]Personal Access Token[/bold] (we'll walk you through creating one)\n"
-        "  • A [bold]Project ID[/bold] (we'll show you where to find it)",
-        title="[bold]Dremio CLI Setup[/bold]",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            "This wizard will help you connect the Dremio CLI to your Dremio Cloud account.\n\n"
+            "You'll need:\n"
+            "  • A [bold]Dremio Cloud account[/bold] (sign up at [link=https://app.dremio.cloud]app.dremio.cloud[/link])\n"
+            "  • A [bold]Personal Access Token[/bold] (we'll walk you through creating one)\n"
+            "  • A [bold]Project ID[/bold] (we'll show you where to find it)",
+            title="[bold]Dremio CLI Setup[/bold]",
+            border_style="cyan",
+        )
+    )
 
     # Check existing config
     if config_path.exists():

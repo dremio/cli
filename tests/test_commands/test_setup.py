@@ -76,7 +76,9 @@ async def test_validate_credentials_success() -> None:
 async def test_validate_credentials_bad_pat() -> None:
     mock_client = AsyncMock()
     response = httpx.Response(401, request=httpx.Request("GET", "https://api.dremio.cloud"))
-    mock_client.get_project = AsyncMock(side_effect=httpx.HTTPStatusError("Unauthorized", request=response.request, response=response))
+    mock_client.get_project = AsyncMock(
+        side_effect=httpx.HTTPStatusError("Unauthorized", request=response.request, response=response)
+    )
     mock_client.close = AsyncMock()
 
     with patch("drs.commands.setup.DremioClient", return_value=mock_client):
@@ -91,7 +93,9 @@ async def test_validate_credentials_bad_pat() -> None:
 async def test_validate_credentials_bad_project() -> None:
     mock_client = AsyncMock()
     response = httpx.Response(404, request=httpx.Request("GET", "https://api.dremio.cloud"))
-    mock_client.get_project = AsyncMock(side_effect=httpx.HTTPStatusError("Not Found", request=response.request, response=response))
+    mock_client.get_project = AsyncMock(
+        side_effect=httpx.HTTPStatusError("Not Found", request=response.request, response=response)
+    )
     mock_client.close = AsyncMock()
 
     with patch("drs.commands.setup.DremioClient", return_value=mock_client):
