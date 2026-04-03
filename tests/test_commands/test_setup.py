@@ -22,9 +22,13 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 import yaml
+from typer.testing import CliRunner
 
 from drs.auth import DEFAULT_URI
+from drs.cli import app
 from drs.commands.setup import validate_credentials, write_config
+
+runner = CliRunner()
 
 
 def test_write_config(tmp_path) -> None:
@@ -135,3 +139,135 @@ async def test_validate_credentials_connection_error() -> None:
     assert ok is False
     assert "Cannot reach" in msg
     assert data is None
+
+
+def test_write_config_includes_header(tmp_path) -> None:
+    config_path = tmp_path / "config.yaml"
+    write_config(DEFAULT_URI, "my-pat", "my-project", config_path)
+
+    raw = config_path.read_text()
+    assert raw.startswith("# Dremio CLI config")
+    assert "plaintext" in raw
+
+
+def test_setup_non_interactive(tmp_path) -> None:
+    """Non-TTY stdin should print instructions and exit 1."""
+    with patch("drs.commands.setup.sys") as mock_sys:
+        mock_sys.stdin.isatty.return_value = False
+        result = runner.invoke(app, ["setup"])
+
+    assert result.exit_code == 1
+    assert "interactive terminal" in result.output or "DREMIO_TOKEN" in result.output
+
+
+def test_setup_happy_path(tmp_path) -> None:
+    """Full wizard flow: region, PAT, project ID, validation, config write."""
+    config_path = tmp_path / "config.yaml"
+
+    mock_client = AsyncMock()
+    mock_client.get_project = AsyncMock(return_value={"id": "p1", "name": "Test Project"})
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("drs.commands.setup.sys") as mock_sys,
+        patch("drs.commands.setup.DremioClient", return_value=mock_client),
+        patch("drs.commands.setup.DEFAULT_CONFIG_PATH", config_path),
+    ):
+        mock_sys.stdin.isatty.return_value = True
+        # Input: region=1, PAT=test-pat, project_id=test-proj
+        result = runner.invoke(app, ["setup"], input="1\ntest-pat\ntest-proj\n")
+
+    assert result.exit_code == 0
+    assert "Setup complete" in result.output
+    assert config_path.exists()
+    data = yaml.safe_load(config_path.read_text())
+    assert data["pat"] == "test-pat"
+    assert data["project_id"] == "test-proj"
+
+
+def test_setup_existing_config_decline(tmp_path) -> None:
+    """Declining to overwrite existing config should abort."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("pat: old\n")
+
+    with (
+        patch("drs.commands.setup.sys") as mock_sys,
+        patch("drs.commands.setup.DEFAULT_CONFIG_PATH", config_path),
+    ):
+        mock_sys.stdin.isatty.return_value = True
+        # Input: decline overwrite (n)
+        result = runner.invoke(app, ["setup"], input="n\n")
+
+    assert result.exit_code == 0
+    assert "cancelled" in result.output.lower()
+    # Config should be unchanged
+    assert config_path.read_text() == "pat: old\n"
+
+
+def test_setup_existing_config_overwrite(tmp_path) -> None:
+    """Accepting overwrite should proceed with the wizard."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("pat: old\n")
+
+    mock_client = AsyncMock()
+    mock_client.get_project = AsyncMock(return_value={"id": "p1", "name": "New Project"})
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("drs.commands.setup.sys") as mock_sys,
+        patch("drs.commands.setup.DremioClient", return_value=mock_client),
+        patch("drs.commands.setup.DEFAULT_CONFIG_PATH", config_path),
+    ):
+        mock_sys.stdin.isatty.return_value = True
+        # Input: overwrite=y, region=1, PAT=new-pat, project_id=new-proj
+        result = runner.invoke(app, ["setup"], input="y\n1\nnew-pat\nnew-proj\n")
+
+    assert result.exit_code == 0
+    data = yaml.safe_load(config_path.read_text())
+    assert data["pat"] == "new-pat"
+
+
+def test_setup_retry_then_abort(tmp_path) -> None:
+    """Validation failure followed by declining retry should exit 1."""
+    config_path = tmp_path / "config.yaml"
+
+    mock_client = AsyncMock()
+    response = httpx.Response(401, request=httpx.Request("GET", "https://api.dremio.cloud"))
+    mock_client.get_project = AsyncMock(
+        side_effect=httpx.HTTPStatusError("Unauthorized", request=response.request, response=response)
+    )
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("drs.commands.setup.sys") as mock_sys,
+        patch("drs.commands.setup.DremioClient", return_value=mock_client),
+        patch("drs.commands.setup.DEFAULT_CONFIG_PATH", config_path),
+    ):
+        mock_sys.stdin.isatty.return_value = True
+        # Input: region=1, PAT=bad, project_id=p1, then decline retry
+        result = runner.invoke(app, ["setup"], input="1\nbad-pat\np1\nn\n")
+
+    assert result.exit_code == 1
+    assert "cancelled" in result.output.lower()
+    assert not config_path.exists()
+
+
+def test_setup_global_config_passthrough(tmp_path) -> None:
+    """dremio --config /custom/path setup should write to the custom path."""
+    config_path = tmp_path / "custom.yaml"
+
+    mock_client = AsyncMock()
+    mock_client.get_project = AsyncMock(return_value={"id": "p1", "name": "Test"})
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("drs.commands.setup.sys") as mock_sys,
+        patch("drs.commands.setup.DremioClient", return_value=mock_client),
+    ):
+        mock_sys.stdin.isatty.return_value = True
+        result = runner.invoke(app, ["--config", str(config_path), "setup"], input="1\nmy-pat\nmy-proj\n")
+
+    assert result.exit_code == 0
+    assert config_path.exists()
+    data = yaml.safe_load(config_path.read_text())
+    assert data["pat"] == "my-pat"

@@ -77,6 +77,7 @@ _cli_opts: dict = {}
 
 @app.callback()
 def main(
+    ctx: typer.Context,
     config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
     token: str | None = typer.Option(None, "--token", help="Dremio personal access token (PAT)"),
     project_id: str | None = typer.Option(None, "--project-id", help="Dremio Cloud project ID"),
@@ -113,6 +114,10 @@ def main(
         "cli_project_id": project_id,
         "cli_uri": uri,
     }
+
+    # Make config_path available to subcommands via typer context
+    ctx.ensure_object(dict)
+    ctx.obj["config_path"] = _cli_opts["config_path"]
 
 
 def get_config() -> DrsConfig:
