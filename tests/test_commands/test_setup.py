@@ -107,6 +107,23 @@ async def test_validate_credentials_bad_project() -> None:
 
 
 @pytest.mark.asyncio
+async def test_validate_credentials_forbidden() -> None:
+    mock_client = AsyncMock()
+    response = httpx.Response(403, request=httpx.Request("GET", "https://api.dremio.cloud"))
+    mock_client.get_project = AsyncMock(
+        side_effect=httpx.HTTPStatusError("Forbidden", request=response.request, response=response)
+    )
+    mock_client.close = AsyncMock()
+
+    with patch("drs.commands.setup.DremioClient", return_value=mock_client):
+        ok, msg, data = await validate_credentials(DEFAULT_URI, "limited-pat", "p1")
+
+    assert ok is False
+    assert "Access denied" in msg
+    assert data is None
+
+
+@pytest.mark.asyncio
 async def test_validate_credentials_connection_error() -> None:
     mock_client = AsyncMock()
     mock_client.get_project = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))

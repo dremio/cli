@@ -52,8 +52,10 @@ async def validate_credentials(uri: str, pat: str, project_id: str) -> tuple[boo
         code = exc.response.status_code
         if code == 401:
             return False, "Authentication failed — your PAT is invalid or expired.", None
-        if code in (403, 404):
-            return False, "Project not found or you don't have access to it.", None
+        if code == 403:
+            return False, "Access denied — your PAT may lack permissions, or the project is inaccessible.", None
+        if code == 404:
+            return False, "Project not found — check the project ID.", None
         return False, f"API error (HTTP {code}): {exc.response.text[:200]}", None
     except httpx.ConnectError:
         return False, f"Cannot reach {uri} — check your region selection and network.", None
@@ -142,7 +144,7 @@ def _prompt_project_id(app_url: str) -> str:
 
 
 def setup_command(
-    config: str | None = typer.Option(None, "--config", "-c", help="Path to write config file"),
+    ctx: typer.Context,
 ) -> None:
     """Interactive setup wizard — configure credentials for Dremio Cloud."""
     if not sys.stdin.isatty():
@@ -156,7 +158,11 @@ def setup_command(
         )
         raise typer.Exit(1)
 
-    config_path = Path(config) if config else DEFAULT_CONFIG_PATH
+    # Honor the global --config flag (e.g. dremio --config /tmp/my.yaml setup)
+    from drs.cli import _cli_opts
+
+    global_config = _cli_opts.get("config_path")
+    config_path = global_config if global_config else DEFAULT_CONFIG_PATH
 
     # Welcome
     console.print()
@@ -197,9 +203,19 @@ def setup_command(
         # Retry loop — let user fix the failing step
         while not ok:
             console.print(f"\n[red]✗ {message}[/red]")
-            if "PAT" in message or "Authentication" in message:
+            if "Authentication" in message:
                 console.print("[dim]Let's try the PAT again.[/dim]")
                 pat = _prompt_pat(app_url)
+            elif "Access denied" in message:
+                console.print(
+                    "\n  [cyan]1[/cyan]) Re-enter PAT (token may lack permissions)\n"
+                    "  [cyan]2[/cyan]) Re-enter Project ID"
+                )
+                choice = typer.prompt("Which would you like to fix?", default="1").strip()
+                if choice == "2":
+                    project_id = _prompt_project_id(app_url)
+                else:
+                    pat = _prompt_pat(app_url)
             elif "Project" in message:
                 console.print("[dim]Let's try the Project ID again.[/dim]")
                 project_id = _prompt_project_id(app_url)
