@@ -28,7 +28,22 @@ import typer
 
 from drs.auth import DrsConfig, load_config
 from drs.client import DremioClient
-from drs.commands import chat, engine, folder, grant, job, project, query, reflection, role, schema, tag, user, wiki
+from drs.commands import (
+    chat,
+    engine,
+    folder,
+    grant,
+    job,
+    project,
+    query,
+    reflection,
+    role,
+    schema,
+    setup,
+    tag,
+    user,
+    wiki,
+)
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
@@ -53,6 +68,7 @@ app.add_typer(role.app, name="role")
 app.add_typer(grant.app, name="grant")
 app.add_typer(project.app, name="project")
 app.add_typer(chat.app, name="chat")
+app.command("setup")(setup.setup_command)
 
 # Global state for config
 _config: DrsConfig | None = None
@@ -61,6 +77,7 @@ _cli_opts: dict = {}
 
 @app.callback()
 def main(
+    ctx: typer.Context,
     config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
     token: str | None = typer.Option(None, "--token", help="Dremio personal access token (PAT)"),
     project_id: str | None = typer.Option(None, "--project-id", help="Dremio Cloud project ID"),
@@ -98,6 +115,10 @@ def main(
         "cli_uri": uri,
     }
 
+    # Make config_path available to subcommands via typer context
+    ctx.ensure_object(dict)
+    ctx.obj["config_path"] = _cli_opts["config_path"]
+
 
 def get_config() -> DrsConfig:
     global _config
@@ -109,12 +130,19 @@ def get_config() -> DrsConfig:
                 cli_project_id=_cli_opts.get("cli_project_id"),
                 cli_uri=_cli_opts.get("cli_uri"),
             )
-        except Exception as e:
-            print(f"Error loading config: {e}", file=sys.stderr)
-            print(
-                "Provide credentials via --token, DREMIO_TOKEN env var, "
-                "or config file (~/.config/dremioai/config.yaml)",
-                file=sys.stderr,
+        except Exception:
+            from rich.console import Console
+
+            from drs.auth import DEFAULT_CONFIG_PATH
+
+            Console(stderr=True).print(
+                "\n[bold red]Configuration required[/bold red]\n\n"
+                "The Dremio CLI needs a Personal Access Token and Project ID.\n\n"
+                "  [bold]Quick setup:[/]  Run [bold cyan]dremio setup[/bold cyan]\n\n"
+                "  [dim]Or provide credentials manually:[/dim]\n"
+                "    --token / DREMIO_TOKEN env var\n"
+                "    --project-id / DREMIO_PROJECT_ID env var\n"
+                f"    Config file: {DEFAULT_CONFIG_PATH}\n",
             )
             raise typer.Exit(1)
     return _config
