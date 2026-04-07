@@ -147,7 +147,11 @@ def _prompt_project_id(app_url: str) -> str:
 def setup_command(
     ctx: typer.Context,
 ) -> None:
-    """Interactive setup wizard — configure credentials for Dremio Cloud."""
+    """Interactive setup wizard — configure credentials for Dremio Cloud.
+
+    Writes configuration to ~/.config/dremioai/config.yaml (or the path
+    specified with --config). Prompts for region (US/EU), PAT, and project ID.
+    """
     if not sys.stdin.isatty():
         err_console.print(
             "[bold]dremio setup[/bold] requires an interactive terminal.\n\n"

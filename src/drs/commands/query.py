@@ -18,7 +18,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from pathlib import Path
+from typing import Annotated, Any
 
 import httpx
 import typer
@@ -131,7 +132,20 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
 
 @app.command("run")
 def cli_run(
-    sql: str = typer.Argument(help="SQL query to execute"),
+    sql: str | None = typer.Argument(None, help="SQL query to execute (use '-' to read from stdin)"),
+    file: Annotated[
+        Path | None,
+        typer.Option(
+            "--file",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            writable=False,
+            readable=True,
+            allow_dash=True,
+            help="Path to a SQL file to execute (use '-' for stdin)",
+        ),
+    ] = None,
     context: str = typer.Option(None, help="Dot-separated default schema context (e.g., myspace.folder)"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
     fields: str = typer.Option(
@@ -140,10 +154,31 @@ def cli_run(
 ) -> None:
     """Execute a SQL query, wait for completion, and return results.
 
+    SQL can be provided as:
+
+      dremio query run "SELECT 1"          # inline argument
+
+      dremio query run --file query.sql    # from a file
+
+      cat query.sql | dremio query run -   # from stdin
+
     Submits the query, polls until the job completes, then fetches all result
     rows. For long-running queries, use 'drs query run' to submit and
     'drs query status' to check progress separately.
     """
+    # Resolve SQL from argument, --file, or stdin
+    if file is not None:
+        if sql is not None:
+            error("Cannot specify both a SQL argument and --file.")
+            raise typer.Exit(1)
+        sql = file.read_text().strip()
+    elif sql is not None:
+        sql = sql.strip()
+
+    if not sql:
+        error("SQL query is empty. Provide SQL as an argument, --file path, or pipe via stdin (use '-' for stdin).")
+        raise typer.Exit(1)
+
     client = _get_client()
     ctx = context.split(".") if context else None
 
