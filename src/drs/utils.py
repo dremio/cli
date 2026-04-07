@@ -202,6 +202,8 @@ def handle_api_error(exc: httpx.HTTPStatusError) -> DremioAPIError:
 
     if status == 401:
         hint = "Authentication failed — check your PAT token"
+        if "api.dremio.cloud" in url and "api.eu.dremio.cloud" not in url:
+            hint += ". If you are on Dremio Cloud EU, set uri: https://api.eu.dremio.cloud in your config"
     elif status == 403:
         hint = "Permission denied — insufficient privileges for this operation"
     elif status == 404:

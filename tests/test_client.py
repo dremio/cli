@@ -119,7 +119,7 @@ class TestSQLBreadcrumb:
 
         await client.submit_sql("SELECT 1")
 
-        assert captured["body"]["sql"] == "/* dremio-cli: submitter=cli */ SELECT 1"
+        assert captured["body"]["sql"] == "/* dremio-cli: submitter=cli */\nSELECT 1"
 
     @pytest.mark.asyncio
     async def test_submit_sql_breadcrumb_with_context(self, client: DremioClient) -> None:
