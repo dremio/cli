@@ -65,6 +65,45 @@ async def test_list_reflections_dataset_with_limit(mock_client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_reflections_filter_by_type(mock_client) -> None:
+    """--type filters by reflection type."""
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        await list_reflections(mock_client, rtype="raw")
+    mock_rq.assert_called_once_with(mock_client, "SELECT * FROM sys.project.reflections WHERE type = 'RAW'")
+
+
+@pytest.mark.asyncio
+async def test_list_reflections_filter_by_status(mock_client) -> None:
+    """--status filters by reflection status."""
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        await list_reflections(mock_client, status="failed")
+    mock_rq.assert_called_once_with(mock_client, "SELECT * FROM sys.project.reflections WHERE status = 'FAILED'")
+
+
+@pytest.mark.asyncio
+async def test_list_reflections_filter_by_dataset_name(mock_client) -> None:
+    """--dataset-name filters with ILIKE substring match."""
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        await list_reflections(mock_client, dataset_name="orders")
+    mock_rq.assert_called_once_with(
+        mock_client, "SELECT * FROM sys.project.reflections WHERE dataset_name ILIKE '%orders%'"
+    )
+
+
+@pytest.mark.asyncio
+async def test_list_reflections_combined_filters(mock_client) -> None:
+    """Multiple filters combine with AND."""
+    mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "ds-789"})
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        await list_reflections(mock_client, path="space.ds", rtype="raw", status="can_accelerate", limit=5)
+    mock_rq.assert_called_once_with(
+        mock_client,
+        "SELECT * FROM sys.project.reflections"
+        " WHERE dataset_id = 'ds-789' AND type = 'RAW' AND status = 'CAN_ACCELERATE' LIMIT 5",
+    )
+
+
+@pytest.mark.asyncio
 async def test_get_reflection(mock_client) -> None:
     mock_client.get_reflection = AsyncMock(return_value={"id": "r1", "status": "CAN_ACCELERATE"})
     result = await get_reflection(mock_client, "r1")

@@ -60,14 +60,24 @@ async def create(client: DremioClient, path: str, rtype: str, display_fields: li
         raise handle_api_error(exc) from exc
 
 
-async def list_reflections(client: DremioClient, path: str | None = None, limit: int | None = None) -> dict:
+async def list_reflections(
+    client: DremioClient,
+    path: str | None = None,
+    *,
+    rtype: str | None = None,
+    status: str | None = None,
+    dataset_name: str | None = None,
+    limit: int | None = None,
+) -> dict:
     """List reflections via sys.project.reflections.
 
     When *path* is given, only reflections for that dataset are returned.
     When omitted, all reflections in the project are returned.
+    Optional filters narrow results by *rtype*, *status*, or *dataset_name*.
     An optional *limit* caps the number of rows returned.
     """
     sql = "SELECT * FROM sys.project.reflections"
+    conditions: list[str] = []
     if path is not None:
         parts = parse_path(path)
         try:
@@ -75,7 +85,15 @@ async def list_reflections(client: DremioClient, path: str | None = None, limit:
         except httpx.HTTPStatusError as exc:
             raise handle_api_error(exc) from exc
         dataset_id = entity["id"]
-        sql += f" WHERE dataset_id = '{dataset_id}'"
+        conditions.append(f"dataset_id = '{dataset_id}'")
+    if rtype is not None:
+        conditions.append(f"type = '{rtype.upper()}'")
+    if status is not None:
+        conditions.append(f"status = '{status.upper()}'")
+    if dataset_name is not None:
+        conditions.append(f"dataset_name ILIKE '%{dataset_name}%'")
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
     if limit is not None:
         sql += f" LIMIT {limit}"
     return await run_query(client, sql)
@@ -152,12 +170,19 @@ def cli_create(
 @app.command("list")
 def cli_list(
     path: str = typer.Argument(None, help="Dot-separated dataset path (omit to list all reflections)"),
+    rtype: str = typer.Option(None, "--type", "-t", help="Filter by reflection type: raw or aggregation"),
+    status: str = typer.Option(None, "--status", "-s", help="Filter by status (e.g. CAN_ACCELERATE, FAILED, EXPIRED)"),
+    dataset_name: str = typer.Option(None, "--dataset-name", "-d", help="Filter by dataset name (substring match)"),
     limit: int = typer.Option(None, "--limit", "-l", help="Maximum number of reflections to return"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
     """List reflections. Shows all project reflections, or those for a specific dataset."""
     client = _get_client()
-    _run_command(list_reflections(client, path, limit=limit), client, fmt)
+    _run_command(
+        list_reflections(client, path, rtype=rtype, status=status, dataset_name=dataset_name, limit=limit),
+        client,
+        fmt,
+    )
 
 
 @app.command("get")
