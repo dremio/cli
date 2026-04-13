@@ -302,11 +302,12 @@ COMMAND_SCHEMAS: dict[str, dict] = {
     "reflection.list": {
         "group": "reflection",
         "command": "list",
-        "description": "List all reflections defined on a dataset.",
+        "description": "List reflections. Shows all project reflections, or those for a specific dataset.",
         "mechanism": "SQL",
-        "sql_template": "SELECT * FROM sys.project.reflections WHERE dataset_id = '{dataset_id}'",
+        "sql_template": "SELECT * FROM sys.project.reflections [WHERE dataset_id = '{dataset_id}'] [LIMIT {limit}]",
         "parameters": [
-            {"name": "path", "type": "string", "required": True, "positional": True},
+            {"name": "path", "type": "string", "required": False, "positional": True},
+            {"name": "limit", "type": "integer", "required": False, "flag": "--limit/-l"},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },

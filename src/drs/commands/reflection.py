@@ -60,15 +60,24 @@ async def create(client: DremioClient, path: str, rtype: str, display_fields: li
         raise handle_api_error(exc) from exc
 
 
-async def list_reflections(client: DremioClient, path: str) -> dict:
-    """List reflections on a dataset via sys.project.reflections."""
-    parts = parse_path(path)
-    try:
-        entity = await client.get_catalog_by_path(parts)
-    except httpx.HTTPStatusError as exc:
-        raise handle_api_error(exc) from exc
-    dataset_id = entity["id"]
-    sql = f"SELECT * FROM sys.project.reflections WHERE dataset_id = '{dataset_id}'"
+async def list_reflections(client: DremioClient, path: str | None = None, limit: int | None = None) -> dict:
+    """List reflections via sys.project.reflections.
+
+    When *path* is given, only reflections for that dataset are returned.
+    When omitted, all reflections in the project are returned.
+    An optional *limit* caps the number of rows returned.
+    """
+    sql = "SELECT * FROM sys.project.reflections"
+    if path is not None:
+        parts = parse_path(path)
+        try:
+            entity = await client.get_catalog_by_path(parts)
+        except httpx.HTTPStatusError as exc:
+            raise handle_api_error(exc) from exc
+        dataset_id = entity["id"]
+        sql += f" WHERE dataset_id = '{dataset_id}'"
+    if limit is not None:
+        sql += f" LIMIT {limit}"
     return await run_query(client, sql)
 
 
@@ -142,12 +151,13 @@ def cli_create(
 
 @app.command("list")
 def cli_list(
-    path: str = typer.Argument(help="Dot-separated dataset path"),
+    path: str = typer.Argument(None, help="Dot-separated dataset path (omit to list all reflections)"),
+    limit: int = typer.Option(None, "--limit", "-l", help="Maximum number of reflections to return"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """List all reflections defined on a dataset."""
+    """List reflections. Shows all project reflections, or those for a specific dataset."""
     client = _get_client()
-    _run_command(list_reflections(client, path), client, fmt)
+    _run_command(list_reflections(client, path, limit=limit), client, fmt)
 
 
 @app.command("get")
