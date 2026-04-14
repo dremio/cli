@@ -17,11 +17,90 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from drs.commands.reflection import delete, get_reflection, refresh
+from drs.commands.reflection import delete, get_reflection, list_reflections, refresh
+
+QUERY_RESULT = {"job_id": "j1", "state": "COMPLETED", "rowCount": 2, "rows": [{"id": "r1"}, {"id": "r2"}]}
+
+
+@pytest.mark.asyncio
+async def test_list_reflections_all(mock_client) -> None:
+    """Omitting path queries all reflections without a WHERE clause."""
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        result = await list_reflections(mock_client)
+    mock_rq.assert_called_once_with(mock_client, "SELECT * FROM sys.project.reflections")
+    assert result["rowCount"] == 2
+
+
+@pytest.mark.asyncio
+async def test_list_reflections_for_dataset(mock_client) -> None:
+    """Providing a path filters by dataset_id."""
+    mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "ds-123"})
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        result = await list_reflections(mock_client, path="space.my_table")
+    mock_rq.assert_called_once_with(mock_client, "SELECT * FROM sys.project.reflections WHERE dataset_id = 'ds-123'")
+    assert result["rowCount"] == 2
+
+
+@pytest.mark.asyncio
+async def test_list_reflections_with_limit(mock_client) -> None:
+    """--limit appends a SQL LIMIT clause."""
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        await list_reflections(mock_client, limit=50)
+    mock_rq.assert_called_once_with(mock_client, "SELECT * FROM sys.project.reflections LIMIT 50")
+
+
+@pytest.mark.asyncio
+async def test_list_reflections_dataset_with_limit(mock_client) -> None:
+    """Both path and limit combine WHERE and LIMIT."""
+    mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "ds-456"})
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        await list_reflections(mock_client, path="space.ds", limit=10)
+    mock_rq.assert_called_once_with(
+        mock_client, "SELECT * FROM sys.project.reflections WHERE dataset_id = 'ds-456' LIMIT 10"
+    )
+
+
+@pytest.mark.asyncio
+async def test_list_reflections_filter_by_type(mock_client) -> None:
+    """--type filters by reflection type."""
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        await list_reflections(mock_client, rtype="raw")
+    mock_rq.assert_called_once_with(mock_client, "SELECT * FROM sys.project.reflections WHERE type = 'RAW'")
+
+
+@pytest.mark.asyncio
+async def test_list_reflections_filter_by_status(mock_client) -> None:
+    """--status filters by reflection status."""
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        await list_reflections(mock_client, status="failed")
+    mock_rq.assert_called_once_with(mock_client, "SELECT * FROM sys.project.reflections WHERE status = 'FAILED'")
+
+
+@pytest.mark.asyncio
+async def test_list_reflections_filter_by_dataset_name(mock_client) -> None:
+    """--dataset-name filters with ILIKE substring match."""
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        await list_reflections(mock_client, dataset_name="orders")
+    mock_rq.assert_called_once_with(
+        mock_client, "SELECT * FROM sys.project.reflections WHERE dataset_name ILIKE '%orders%'"
+    )
+
+
+@pytest.mark.asyncio
+async def test_list_reflections_combined_filters(mock_client) -> None:
+    """Multiple filters combine with AND."""
+    mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "ds-789"})
+    with patch("drs.commands.reflection.run_query", new_callable=AsyncMock, return_value=QUERY_RESULT) as mock_rq:
+        await list_reflections(mock_client, path="space.ds", rtype="raw", status="can_accelerate", limit=5)
+    mock_rq.assert_called_once_with(
+        mock_client,
+        "SELECT * FROM sys.project.reflections"
+        " WHERE dataset_id = 'ds-789' AND type = 'RAW' AND status = 'CAN_ACCELERATE' LIMIT 5",
+    )
 
 
 @pytest.mark.asyncio
