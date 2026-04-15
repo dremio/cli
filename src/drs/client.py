@@ -23,6 +23,7 @@ from typing import Any
 
 import httpx
 
+from drs import __version__
 from drs.auth import DrsConfig
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,7 @@ class DremioClient:
             headers={
                 "Authorization": f"Bearer {config.pat}",
                 "Content-Type": "application/json",
+                "User-Agent": f"dremio-cli/{__version__}",
             },
             timeout=120.0,
         )
