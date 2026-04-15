@@ -9,6 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
+.idea
+
 # Generated reports
 docs/API_COVERAGE_REPORT.txt
 docs/*.json
