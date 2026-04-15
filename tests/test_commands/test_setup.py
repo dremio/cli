@@ -27,6 +27,7 @@ from typer.testing import CliRunner
 from drs.auth import DEFAULT_URI
 from drs.cli import app
 from drs.commands.setup import validate_credentials, write_config
+from drs.token_store import OAuthTokens
 
 runner = CliRunner()
 
@@ -147,7 +148,7 @@ def test_write_config_includes_header(tmp_path) -> None:
 
     raw = config_path.read_text()
     assert raw.startswith("# Dremio CLI config")
-    assert "plaintext" in raw
+    assert "mode 600" in raw
 
 
 def test_setup_non_interactive(tmp_path) -> None:
@@ -174,8 +175,8 @@ def test_setup_happy_path(tmp_path) -> None:
         patch("drs.commands.setup.DEFAULT_CONFIG_PATH", config_path),
     ):
         mock_sys.stdin.isatty.return_value = True
-        # Input: region=1, PAT=test-pat, project_id=test-proj
-        result = runner.invoke(app, ["setup"], input="1\ntest-pat\ntest-proj\n")
+        # Input: region=1, auth=2(PAT), PAT=test-pat, project_id=test-proj
+        result = runner.invoke(app, ["setup"], input="1\n2\ntest-pat\ntest-proj\n")
 
     assert result.exit_code == 0
     assert "Setup complete" in result.output
@@ -219,8 +220,8 @@ def test_setup_existing_config_overwrite(tmp_path) -> None:
         patch("drs.commands.setup.DEFAULT_CONFIG_PATH", config_path),
     ):
         mock_sys.stdin.isatty.return_value = True
-        # Input: overwrite=y, region=1, PAT=new-pat, project_id=new-proj
-        result = runner.invoke(app, ["setup"], input="y\n1\nnew-pat\nnew-proj\n")
+        # Input: overwrite=y, region=1, auth=2(PAT), PAT=new-pat, project_id=new-proj
+        result = runner.invoke(app, ["setup"], input="y\n1\n2\nnew-pat\nnew-proj\n")
 
     assert result.exit_code == 0
     data = yaml.safe_load(config_path.read_text())
@@ -244,8 +245,8 @@ def test_setup_retry_then_abort(tmp_path) -> None:
         patch("drs.commands.setup.DEFAULT_CONFIG_PATH", config_path),
     ):
         mock_sys.stdin.isatty.return_value = True
-        # Input: region=1, PAT=bad, project_id=p1, then decline retry
-        result = runner.invoke(app, ["setup"], input="1\nbad-pat\np1\nn\n")
+        # Input: region=1, auth=2(PAT), PAT=bad, project_id=p1, then decline retry
+        result = runner.invoke(app, ["setup"], input="1\n2\nbad-pat\np1\nn\n")
 
     assert result.exit_code == 1
     assert "cancelled" in result.output.lower()
@@ -265,9 +266,34 @@ def test_setup_global_config_passthrough(tmp_path) -> None:
         patch("drs.commands.setup.DremioClient", return_value=mock_client),
     ):
         mock_sys.stdin.isatty.return_value = True
-        result = runner.invoke(app, ["--config", str(config_path), "setup"], input="1\nmy-pat\nmy-proj\n")
+        result = runner.invoke(app, ["--config", str(config_path), "setup"], input="1\n2\nmy-pat\nmy-proj\n")
 
     assert result.exit_code == 0
     assert config_path.exists()
     data = yaml.safe_load(config_path.read_text())
     assert data["pat"] == "my-pat"
+
+
+def test_setup_oauth_path(tmp_path) -> None:
+    """OAuth path through setup wizard: region, auth=1(OAuth), project_id."""
+    config_path = tmp_path / "config.yaml"
+
+    fake_tokens = OAuthTokens(access_token="at-oauth", client_id="cid")
+
+    with (
+        patch("drs.commands.setup.sys") as mock_sys,
+        patch("drs.oauth.run_login_flow", return_value=fake_tokens),
+        patch("drs.token_store.save") as mock_save,
+        patch("drs.commands.setup.DEFAULT_CONFIG_PATH", config_path),
+    ):
+        mock_sys.stdin.isatty.return_value = True
+        # Input: region=1, auth=1(OAuth), project_id=my-proj
+        result = runner.invoke(app, ["setup"], input="1\n1\nmy-proj\n")
+
+    assert result.exit_code == 0
+    assert config_path.exists()
+    data = yaml.safe_load(config_path.read_text())
+    assert data.get("auth_method") == "oauth"
+    assert "pat" not in data
+    assert data["project_id"] == "my-proj"
+    mock_save.assert_called_once()

@@ -34,6 +34,7 @@ from drs.commands import (
     folder,
     grant,
     job,
+    login,
     project,
     query,
     reflection,
@@ -69,6 +70,8 @@ app.add_typer(grant.app, name="grant")
 app.add_typer(project.app, name="project")
 app.add_typer(chat.app, name="chat")
 app.command("setup")(setup.setup_command)
+app.command("login")(login.login_command)
+app.command("logout")(login.logout_command)
 
 # Global state for config
 _config: DrsConfig | None = None
@@ -137,8 +140,9 @@ def get_config() -> DrsConfig:
 
             Console(stderr=True).print(
                 "\n[bold red]Configuration required[/bold red]\n\n"
-                "The Dremio CLI needs a Personal Access Token and Project ID.\n\n"
-                "  [bold]Quick setup:[/]  Run [bold cyan]dremio setup[/bold cyan]\n\n"
+                "The Dremio CLI needs authentication credentials and a Project ID.\n\n"
+                "  [bold]Quick setup:[/]  Run [bold cyan]dremio setup[/bold cyan]\n"
+                "  [bold]OAuth login:[/]  Run [bold cyan]dremio login[/bold cyan]\n\n"
                 "  [dim]Or provide credentials manually:[/dim]\n"
                 "    --token / DREMIO_TOKEN env var\n"
                 "    --project-id / DREMIO_PROJECT_ID env var\n"
