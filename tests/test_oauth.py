@@ -77,7 +77,7 @@ class TestBuildAuthorizationURL:
         assert params["redirect_uri"] == ["http://localhost:8080/callback"]
         assert params["code_challenge"] == ["abc123"]
         assert params["code_challenge_method"] == ["S256"]
-        assert params["scope"] == ["openid offline_access"]
+        assert params["scope"] == ["dremio.all offline_access"]
         assert params["state"] == ["state-xyz"]
 
 

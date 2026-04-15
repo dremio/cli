@@ -120,7 +120,7 @@ def build_authorization_url(
         "redirect_uri": redirect_uri,
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
-        "scope": "openid offline_access",
+        "scope": "dremio.all offline_access",
         "state": state,
     }
     return f"{auth_endpoint}?{urlencode(params)}"
