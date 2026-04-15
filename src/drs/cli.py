@@ -30,6 +30,7 @@ from drs.auth import DrsConfig, load_config
 from drs.client import DremioClient
 from drs.commands import (
     chat,
+    context,
     engine,
     folder,
     grant,
@@ -68,6 +69,7 @@ app.add_typer(role.app, name="role")
 app.add_typer(grant.app, name="grant")
 app.add_typer(project.app, name="project")
 app.add_typer(chat.app, name="chat")
+app.add_typer(context.app, name="context")
 app.command("setup")(setup.setup_command)
 
 # Global state for config
@@ -79,6 +81,7 @@ _cli_opts: dict = {}
 def main(
     ctx: typer.Context,
     config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
+    profile: str | None = typer.Option(None, "--profile", "-p", help="Named profile to use from config file"),
     token: str | None = typer.Option(None, "--token", help="Dremio personal access token (PAT)"),
     project_id: str | None = typer.Option(None, "--project-id", help="Dremio Cloud project ID"),
     uri: str | None = typer.Option(
@@ -110,6 +113,7 @@ def main(
     global _cli_opts
     _cli_opts = {
         "config_path": Path(config) if config else None,
+        "profile": profile,
         "cli_token": token,
         "cli_project_id": project_id,
         "cli_uri": uri,
@@ -126,6 +130,7 @@ def get_config() -> DrsConfig:
         try:
             _config = load_config(
                 _cli_opts.get("config_path"),
+                profile=_cli_opts.get("profile"),
                 cli_token=_cli_opts.get("cli_token"),
                 cli_project_id=_cli_opts.get("cli_project_id"),
                 cli_uri=_cli_opts.get("cli_uri"),
