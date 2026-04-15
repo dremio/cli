@@ -245,7 +245,7 @@ def run_login_flow(dremio_url: str) -> OAuthTokens:
     metadata = discover(dremio_url)
 
     port = find_free_port()
-    redirect_uri = f"http://localhost:{port}/callback"
+    redirect_uri = f"http://localhost:{port}/Callback"
 
     client_id, client_secret = None, None
     if metadata.registration_endpoint:

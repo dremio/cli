@@ -62,7 +62,7 @@ class TestBuildAuthorizationURL:
         url = build_authorization_url(
             auth_endpoint="https://auth.example.com/authorize",
             client_id="my-client",
-            redirect_uri="http://localhost:8080/callback",
+            redirect_uri="http://localhost:8080/Callback",
             code_challenge="abc123",
             state="state-xyz",
         )
@@ -74,7 +74,7 @@ class TestBuildAuthorizationURL:
         assert parsed.path == "/authorize"
         assert params["response_type"] == ["code"]
         assert params["client_id"] == ["my-client"]
-        assert params["redirect_uri"] == ["http://localhost:8080/callback"]
+        assert params["redirect_uri"] == ["http://localhost:8080/Callback"]
         assert params["code_challenge"] == ["abc123"]
         assert params["code_challenge_method"] == ["S256"]
         assert params["scope"] == ["dremio.all offline_access"]
@@ -150,7 +150,7 @@ class TestExchangeCode:
             tokens = exchange_code(
                 "https://auth.example.com/token",
                 "auth-code-123",
-                "http://localhost:8080/callback",
+                "http://localhost:8080/Callback",
                 "my-client",
                 "my-secret",
                 "my-verifier",
@@ -211,7 +211,7 @@ class TestCallbackServer:
         port = find_free_port()
         server, future = start_callback_server(port)
         try:
-            url = f"http://localhost:{port}/callback?code=test-code&state=test-state"
+            url = f"http://localhost:{port}/Callback?code=test-code&state=test-state"
             urllib.request.urlopen(url, timeout=5)
             code, state = future.result(timeout=5)
             assert code == "test-code"
