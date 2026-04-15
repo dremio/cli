@@ -81,6 +81,21 @@ class TestBuildAuthorizationURL:
         assert params["state"] == ["state-xyz"]
 
 
+class TestLoginUrl:
+    def test_app_to_login(self) -> None:
+        from drs.oauth import _login_url
+
+        assert _login_url("https://app.dremio.cloud") == "https://login.dremio.cloud"
+        assert _login_url("https://app.dev.dremio.site") == "https://login.dev.dremio.site"
+        assert _login_url("https://app.eu.dremio.cloud") == "https://login.eu.dremio.cloud"
+
+    def test_non_app_host_unchanged(self) -> None:
+        from drs.oauth import _login_url
+
+        assert _login_url("https://login.dremio.cloud") == "https://login.dremio.cloud"
+        assert _login_url("https://custom.example.com") == "https://custom.example.com"
+
+
 class TestDiscover:
     def test_discover_parses_metadata(self) -> None:
         metadata_json = {
@@ -94,10 +109,10 @@ class TestDiscover:
         mock_response.raise_for_status = MagicMock()
 
         with patch("drs.oauth.httpx.get", return_value=mock_response) as mock_get:
-            result = discover("https://api.dremio.cloud")
+            result = discover("https://app.dremio.cloud")
 
         mock_get.assert_called_once_with(
-            "https://api.dremio.cloud/.well-known/oauth-authorization-server",
+            "https://login.dremio.cloud/.well-known/oauth-authorization-server",
             timeout=30.0,
         )
         assert result.authorization_endpoint == "https://auth.example.com/authorize"
@@ -115,7 +130,7 @@ class TestDiscover:
         mock_response.raise_for_status = MagicMock()
 
         with patch("drs.oauth.httpx.get", return_value=mock_response):
-            result = discover("https://api.dremio.cloud")
+            result = discover("https://app.dremio.cloud")
 
         assert result.registration_endpoint is None
 

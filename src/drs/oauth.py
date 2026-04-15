@@ -55,9 +55,19 @@ class OAuthServerMetadata:
     registration_endpoint: str | None = None
 
 
+def _login_url(dremio_url: str) -> str:
+    """Derive the OAuth login host from a Dremio URL (app.X -> login.X)."""
+    parsed = urlparse(dremio_url)
+    host = parsed.hostname or ""
+    if host.startswith("app."):
+        host = "login." + host[4:]
+    return f"{parsed.scheme}://{host}"
+
+
 def discover(dremio_url: str) -> OAuthServerMetadata:
     """Fetch OAuth Authorization Server Metadata from *dremio_url*."""
-    url = f"{dremio_url}/.well-known/oauth-authorization-server"
+    base = _login_url(dremio_url)
+    url = f"{base}/.well-known/oauth-authorization-server"
     resp = httpx.get(url, timeout=30.0)
     resp.raise_for_status()
     data = resp.json()
