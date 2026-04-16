@@ -26,6 +26,7 @@ from pathlib import Path
 import httpx
 import typer
 
+from drs import __version__
 from drs.auth import DrsConfig, load_config
 from drs.client import DremioClient
 from drs.commands import (
@@ -49,7 +50,7 @@ CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
 app = typer.Typer(
     name="dremio",
-    help="Developer CLI for Dremio Cloud.",
+    help=f"Developer CLI for Dremio Cloud (version {__version__})",
     no_args_is_help=True,
     context_settings=CONTEXT_SETTINGS,
 )
@@ -75,9 +76,18 @@ _config: DrsConfig | None = None
 _cli_opts: dict = {}
 
 
+def _version_callback(value: bool) -> None:
+    if value:
+        print(f"dremio-cli {__version__}")
+        raise typer.Exit()
+
+
 @app.callback()
 def main(
     ctx: typer.Context,
+    version: bool = typer.Option(
+        False, "--version", help="Show version and exit.", callback=_version_callback, is_eager=True
+    ),
     config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
     token: str | None = typer.Option(None, "--token", help="Dremio personal access token (PAT)"),
     project_id: str | None = typer.Option(None, "--project-id", help="Dremio Cloud project ID"),
