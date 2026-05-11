@@ -25,7 +25,8 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from drs.auth import load_config
+from drs.auth import DrsConfig, load_config
+from drs.token_store import OAuthTokens
 
 
 def test_config_from_env_vars(tmp_path: Path) -> None:
@@ -135,6 +136,55 @@ def test_dremio_token_overrides_dremio_pat(tmp_path: Path) -> None:
         config = load_config(tmp_path / "nonexistent.yaml")
 
     assert config.pat == "new-token"
+
+
+def test_config_oauth_from_token_store(tmp_path: Path) -> None:
+    """When no PAT is available but OAuth tokens exist, auth_method should be 'oauth'."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(yaml.dump({"project_id": "proj-1"}))
+
+    fake_tokens = OAuthTokens(access_token="oauth-at", refresh_token="oauth-rt", client_id="cid")
+
+    with (
+        patch.dict(os.environ, {}, clear=False),
+        patch("drs.token_store.load", return_value=fake_tokens),
+    ):
+        for k in ["DREMIO_TOKEN", "DREMIO_PAT", "DREMIO_PROJECT_ID", "DREMIO_URI"]:
+            os.environ.pop(k, None)
+        config = load_config(config_file)
+
+    assert config.auth_method == "oauth"
+    assert config.oauth_access_token == "oauth-at"
+    assert config.pat is None
+
+
+def test_config_pat_still_works(tmp_path: Path) -> None:
+    """PAT auth should continue to work exactly as before."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(yaml.dump({"pat": "my-pat", "project_id": "proj-1"}))
+
+    with patch.dict(os.environ, {}, clear=False):
+        for k in ["DREMIO_TOKEN", "DREMIO_PAT", "DREMIO_PROJECT_ID", "DREMIO_URI"]:
+            os.environ.pop(k, None)
+        config = load_config(config_file)
+
+    assert config.auth_method == "pat"
+    assert config.pat == "my-pat"
+
+
+def test_config_neither_pat_nor_oauth_fails(tmp_path: Path) -> None:
+    """Missing both PAT and OAuth tokens should raise ValidationError."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(yaml.dump({"project_id": "proj-1"}))
+
+    with (
+        patch.dict(os.environ, {}, clear=False),
+        patch("drs.token_store.load", return_value=None),
+        pytest.raises(ValidationError),
+    ):
+        for k in ["DREMIO_TOKEN", "DREMIO_PAT", "DREMIO_PROJECT_ID", "DREMIO_URI"]:
+            os.environ.pop(k, None)
+        load_config(config_file)
 
 
 def test_cli_args_override_env(tmp_path: Path) -> None:
