@@ -46,14 +46,10 @@ async def test_get_entity_handles_dots_in_quotes(mock_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_folder_single_creates_space(mock_client) -> None:
-    """Single-component path should CREATE SPACE."""
-    mock_client.submit_sql = AsyncMock(return_value={"id": "job-1"})
-    mock_client.get_job_status = AsyncMock(return_value={"jobState": "COMPLETED", "rowCount": 0})
-    mock_client.get_job_results = AsyncMock(return_value={"rows": []})
-    await create_folder(mock_client, "Analytics")
-    sql = mock_client.submit_sql.call_args[0][0]
-    assert 'CREATE SPACE "Analytics"' in sql
+async def test_create_folder_single_raises_error(mock_client) -> None:
+    """Single-component path should raise ValueError pointing to `dremio space create`."""
+    with pytest.raises(ValueError, match="dremio space create"):
+        await create_folder(mock_client, "Analytics")
 
 
 @pytest.mark.asyncio

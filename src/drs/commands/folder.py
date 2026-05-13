@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""dremio folder — manage spaces and folders in the Dremio catalog."""
+"""dremio folder — manage folders in the Dremio catalog."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from drs.output import OutputFormat, error, output
 from drs.utils import handle_api_error, parse_path, quote_path_sql
 
 app = typer.Typer(
-    help="Manage spaces and folders in the Dremio catalog.", context_settings={"help_option_names": ["-h", "--help"]}
+    help="Manage folders in the Dremio catalog.", context_settings={"help_option_names": ["-h", "--help"]}
 )
 
 
@@ -52,13 +52,16 @@ async def get_entity(client: DremioClient, path: str) -> dict:
 
 
 async def create_folder(client: DremioClient, path: str) -> dict:
-    """Create a space (single component) or folder (nested path) using SQL."""
+    """Create a folder at the given nested path using SQL."""
     parts = parse_path(path)
     if len(parts) == 1:
-        sql = f'CREATE SPACE "{parts[0]}"'
-    else:
-        quoted = quote_path_sql(path)
-        sql = f"CREATE FOLDER {quoted}"
+        raise ValueError(
+            f"Cannot create a top-level folder '{parts[0]}'. "
+            "Use `dremio space create <name>` to create a space, "
+            "or provide a fully qualified path like `<space>.<folder>`."
+        )
+    quoted = quote_path_sql(path)
+    sql = f"CREATE FOLDER {quoted}"
     return await run_query(client, sql)
 
 
@@ -147,14 +150,14 @@ def cli_get(
 @app.command("create")
 def cli_create(
     path: str = typer.Argument(
-        help="Space name (single component) or dot-separated folder path (e.g., myspace.newfolder)"
+        help="Dot-separated folder path (e.g., myspace.newfolder). Must be nested inside a space."
     ),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Create a space or folder.
+    """Create a folder at the given path.
 
-    Single path component (e.g., 'Analytics') creates a space.
-    Nested path (e.g., 'Analytics.reports') creates a folder.
+    Path must be nested inside a space (e.g., 'Analytics.reports').
+    To create a top-level space, use `dremio space create <name>` instead.
     """
     client = _get_client()
     _run_command(create_folder(client, path), client, fmt)
