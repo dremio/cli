@@ -26,9 +26,7 @@ from drs.commands.folder import delete_entity, get_entity, list_catalog
 from drs.commands.query import run_query
 from drs.output import OutputFormat, error, output
 
-app = typer.Typer(
-    help="Manage spaces in the Dremio catalog.", context_settings={"help_option_names": ["-h", "--help"]}
-)
+app = typer.Typer(help="Manage spaces in the Dremio catalog.", context_settings={"help_option_names": ["-h", "--help"]})
 
 
 async def list_spaces(client: DremioClient) -> dict:
