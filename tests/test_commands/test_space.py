@@ -53,13 +53,51 @@ async def test_list_spaces_empty_catalog(mock_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_space_runs_correct_sql(mock_client) -> None:
+async def test_create_space_sp_enabled(mock_client) -> None:
+    """On SP-enabled clusters CREATE SPACE SQL succeeds on first try."""
     mock_client.submit_sql = AsyncMock(return_value={"id": "job-1"})
     mock_client.get_job_status = AsyncMock(return_value={"jobState": "COMPLETED", "rowCount": 0})
     mock_client.get_job_results = AsyncMock(return_value={"rows": []})
-    await create_space(mock_client, "Analytics")
-    sql = mock_client.submit_sql.call_args[0][0]
-    assert sql == 'CREATE SPACE "Analytics"'
+    result = await create_space(mock_client, "Analytics")
+    assert mock_client.submit_sql.call_count == 1
+    assert mock_client.submit_sql.call_args[0][0] == 'CREATE SPACE "Analytics"'
+    assert result["state"] == "COMPLETED"
+
+
+@pytest.mark.asyncio
+async def test_create_space_pre_sp_falls_back_to_create_folder(mock_client) -> None:
+    """On pre-SP clusters, CREATE SPACE fails with the known sentinel; falls back to CREATE FOLDER."""
+    mock_client.submit_sql = AsyncMock(side_effect=[{"id": "job-1"}, {"id": "job-2"}])
+    mock_client.get_job_status = AsyncMock(
+        side_effect=[
+            {
+                "jobState": "FAILED",
+                "errorMessage": "Cannot create space [Analytics]. Legacy spaces are not supported.",
+            },
+            {"jobState": "COMPLETED", "rowCount": 0},
+        ]
+    )
+    mock_client.get_job_results = AsyncMock(return_value={"rows": []})
+    result = await create_space(mock_client, "Analytics")
+    assert mock_client.submit_sql.call_count == 2
+    assert mock_client.submit_sql.call_args_list[0][0][0] == 'CREATE SPACE "Analytics"'
+    assert mock_client.submit_sql.call_args_list[1][0][0] == 'CREATE FOLDER "Analytics"'
+    assert result["state"] == "COMPLETED"
+
+
+@pytest.mark.asyncio
+async def test_create_space_other_failure_is_raised(mock_client) -> None:
+    """Failures unrelated to the SP sentinel (e.g., already exists) are raised, not fallen back."""
+    from drs.utils import DremioAPIError
+
+    mock_client.submit_sql = AsyncMock(return_value={"id": "job-1"})
+    mock_client.get_job_status = AsyncMock(
+        return_value={"jobState": "FAILED", "errorMessage": "Space [Analytics] already exists."}
+    )
+    mock_client.get_job_results = AsyncMock(return_value={"rows": []})
+    with pytest.raises(DremioAPIError, match="already exists"):
+        await create_space(mock_client, "Analytics")
+    assert mock_client.submit_sql.call_count == 1
 
 
 @pytest.mark.asyncio

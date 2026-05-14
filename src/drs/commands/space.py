@@ -25,6 +25,7 @@ from drs.client import DremioClient
 from drs.commands.folder import delete_entity, get_entity, list_catalog
 from drs.commands.query import run_query
 from drs.output import OutputFormat, error, output
+from drs.utils import DremioAPIError
 
 app = typer.Typer(help="Manage spaces in the Dremio catalog.", context_settings={"help_option_names": ["-h", "--help"]})
 
@@ -36,10 +37,23 @@ async def list_spaces(client: DremioClient) -> dict:
     return {"entities": spaces}
 
 
+_LEGACY_SPACE_NOT_SUPPORTED = "Legacy spaces are not supported"
+
+
 async def create_space(client: DremioClient, name: str) -> dict:
-    """Create a space using CREATE SPACE SQL."""
-    sql = f'CREATE SPACE "{name}"'
-    return await run_query(client, sql)
+    """Create a space.
+
+    Uses CREATE SPACE SQL. On pre-Space-Plugin clusters that reject it with
+    "Legacy spaces are not supported", falls back to CREATE FOLDER with a
+    single-component path. All other failures are propagated as DremioAPIError.
+    """
+    result = await run_query(client, f'CREATE SPACE "{name}"')
+    if result.get("state") == "FAILED":
+        err = result.get("error", "")
+        if _LEGACY_SPACE_NOT_SUPPORTED in err:
+            return await run_query(client, f'CREATE FOLDER "{name}"')
+        raise DremioAPIError(0, err)
+    return result
 
 
 async def get_space(client: DremioClient, name: str) -> dict:
