@@ -150,6 +150,14 @@ async def test_delete_space(mock_client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_delete_space_wrong_container_type_raises_error(mock_client) -> None:
+    """Deleting a non-space entity (e.g. a source) via space delete should raise ValueError."""
+    mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "src1", "tag": "v1", "containerType": "SOURCE"})
+    with pytest.raises(ValueError, match="source, not a space"):
+        await delete_space(mock_client, "S3Source")
+
+
+@pytest.mark.asyncio
 async def test_delete_space_nested_path_raises_error(mock_client) -> None:
     """Multi-component path should raise ValueError pointing to `dremio folder delete`."""
     with pytest.raises(ValueError, match="dremio folder delete"):

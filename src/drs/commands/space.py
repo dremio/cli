@@ -73,6 +73,10 @@ async def delete_space(client: DremioClient, name: str) -> dict:
     """Delete a space by name."""
     if len(parse_path(name)) > 1:
         raise ValueError(f"'{name}' is a nested path. Use `dremio folder delete {name}` for folders.")
+    entity = await get_entity(client, name)
+    if entity.get("containerType") != "SPACE":
+        kind = entity.get("containerType", "entity").lower()
+        raise ValueError(f"'{name}' is a {kind}, not a space.")
     return await delete_entity(client, name)
 
 
