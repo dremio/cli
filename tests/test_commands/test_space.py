@@ -86,6 +86,30 @@ async def test_create_space_pre_sp_falls_back_to_create_folder(mock_client) -> N
 
 
 @pytest.mark.asyncio
+async def test_create_space_pre_sp_fallback_failure_is_raised(mock_client) -> None:
+    """If the CREATE FOLDER fallback also fails (e.g., already exists), the error is raised."""
+    from drs.utils import DremioAPIError
+
+    mock_client.submit_sql = AsyncMock(side_effect=[{"id": "job-1"}, {"id": "job-2"}])
+    mock_client.get_job_status = AsyncMock(
+        side_effect=[
+            {
+                "jobState": "FAILED",
+                "errorMessage": "Cannot create space [Analytics]. Legacy spaces are not supported.",
+            },
+            {
+                "jobState": "FAILED",
+                "errorMessage": "Folder [[serverlessproject, Analytics]] already exists.",
+            },
+        ]
+    )
+    mock_client.get_job_results = AsyncMock(return_value={"rows": []})
+    with pytest.raises(DremioAPIError, match="Space \\[Analytics\\] already exists"):
+        await create_space(mock_client, "Analytics")
+    assert mock_client.submit_sql.call_count == 2
+
+
+@pytest.mark.asyncio
 async def test_create_space_other_failure_is_raised(mock_client) -> None:
     """Failures unrelated to the SP sentinel (e.g., already exists) are raised, not fallen back."""
     from drs.utils import DremioAPIError
@@ -111,8 +135,22 @@ async def test_get_space(mock_client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_space_nested_path_raises_error(mock_client) -> None:
+    """Multi-component path should raise ValueError pointing to `dremio folder get`."""
+    with pytest.raises(ValueError, match="dremio folder get"):
+        await get_space(mock_client, "Analytics.reports")
+
+
+@pytest.mark.asyncio
 async def test_delete_space(mock_client) -> None:
     mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "s1", "tag": "v1", "containerType": "SPACE"})
     mock_client.delete_catalog_entity = AsyncMock(return_value={"status": "ok"})
     await delete_space(mock_client, "Analytics")
     mock_client.delete_catalog_entity.assert_called_once_with("s1", tag="v1")
+
+
+@pytest.mark.asyncio
+async def test_delete_space_nested_path_raises_error(mock_client) -> None:
+    """Multi-component path should raise ValueError pointing to `dremio folder delete`."""
+    with pytest.raises(ValueError, match="dremio folder delete"):
+        await delete_space(mock_client, "Analytics.reports")

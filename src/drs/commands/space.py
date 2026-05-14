@@ -25,7 +25,7 @@ from drs.client import DremioClient
 from drs.commands.folder import delete_entity, get_entity, list_catalog
 from drs.commands.query import run_query
 from drs.output import OutputFormat, error, output
-from drs.utils import DremioAPIError
+from drs.utils import DremioAPIError, parse_path
 
 app = typer.Typer(help="Manage spaces in the Dremio catalog.", context_settings={"help_option_names": ["-h", "--help"]})
 
@@ -51,18 +51,28 @@ async def create_space(client: DremioClient, name: str) -> dict:
     if result.get("state") == "FAILED":
         err = result.get("error", "")
         if _LEGACY_SPACE_NOT_SUPPORTED in err:
-            return await run_query(client, f'CREATE FOLDER "{name}"')
+            fallback = await run_query(client, f'CREATE FOLDER "{name}"')
+            if fallback.get("state") == "FAILED":
+                fallback_err = fallback.get("error", "")
+                if "already exists" in fallback_err:
+                    raise DremioAPIError(0, f"Space [{name}] already exists.")
+                raise DremioAPIError(0, fallback_err)
+            return fallback
         raise DremioAPIError(0, err)
     return result
 
 
 async def get_space(client: DremioClient, name: str) -> dict:
     """Get space metadata by name."""
+    if len(parse_path(name)) > 1:
+        raise ValueError(f"'{name}' is a nested path. Use `dremio folder get {name}` for folders.")
     return await get_entity(client, name)
 
 
 async def delete_space(client: DremioClient, name: str) -> dict:
     """Delete a space by name."""
+    if len(parse_path(name)) > 1:
+        raise ValueError(f"'{name}' is a nested path. Use `dremio folder delete {name}` for folders.")
     return await delete_entity(client, name)
 
 

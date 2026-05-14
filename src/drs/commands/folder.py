@@ -60,9 +60,13 @@ async def create_folder(client: DremioClient, path: str) -> dict:
             "Use `dremio space create <name>` to create a space, "
             "or provide a fully qualified path like `<space>.<folder>`."
         )
+    from drs.utils import DremioAPIError
+
     quoted = quote_path_sql(path)
-    sql = f"CREATE FOLDER {quoted}"
-    return await run_query(client, sql)
+    result = await run_query(client, f"CREATE FOLDER {quoted}")
+    if result.get("state") == "FAILED":
+        raise DremioAPIError(0, result.get("error", ""))
+    return result
 
 
 async def delete_entity(client: DremioClient, path: str) -> dict:
@@ -78,6 +82,22 @@ async def delete_entity(client: DremioClient, path: str) -> dict:
         return await client.delete_catalog_entity(entity_id, tag=tag)
     except httpx.HTTPStatusError as exc:
         raise handle_api_error(exc) from exc
+
+
+async def get_folder(client: DremioClient, path: str) -> dict:
+    """Get a folder by path; rejects top-level (single-component) paths."""
+    parts = parse_path(path)
+    if len(parts) == 1:
+        raise ValueError(f"'{parts[0]}' is a top-level space. Use `dremio space get {parts[0]}` instead.")
+    return await get_entity(client, path)
+
+
+async def delete_folder(client: DremioClient, path: str) -> dict:
+    """Delete a folder by path; rejects top-level (single-component) paths."""
+    parts = parse_path(path)
+    if len(parts) == 1:
+        raise ValueError(f"'{parts[0]}' is a top-level space. Use `dremio space delete {parts[0]}` instead.")
+    return await delete_entity(client, path)
 
 
 async def grants(client: DremioClient, path: str) -> dict:
@@ -144,7 +164,7 @@ def cli_get(
 ) -> None:
     """Get full metadata for a catalog entity by path."""
     client = _get_client()
-    _run_command(get_entity(client, path), client, fmt, fields=fields)
+    _run_command(get_folder(client, path), client, fmt, fields=fields)
 
 
 @app.command("create")
@@ -172,9 +192,9 @@ def cli_delete(
     """Delete a catalog entity (space, folder, view, etc.). Cannot be undone."""
     client = _get_client()
     if dry_run:
-        _run_command(get_entity(client, path), client, fmt)
+        _run_command(get_folder(client, path), client, fmt)
         return
-    _run_command(delete_entity(client, path), client, fmt)
+    _run_command(delete_folder(client, path), client, fmt)
 
 
 @app.command("grants")
