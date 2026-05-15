@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""dremio folder — manage folders in the Dremio catalog."""
+"""dremio folder — manage nested folders and list top-level catalog entities."""
 
 from __future__ import annotations
 
@@ -24,11 +24,12 @@ import typer
 
 from drs.client import DremioClient
 from drs.commands.query import run_query
-from drs.output import OutputFormat, error, output
+from drs.output import OutputFormat, error, output, warn
 from drs.utils import handle_api_error, parse_path, quote_path_sql
 
 app = typer.Typer(
-    help="Manage folders in the Dremio catalog.", context_settings={"help_option_names": ["-h", "--help"]}
+    help="Manage nested folders and list top-level catalog entities. Use `dremio space` for top-level spaces.",
+    context_settings={"help_option_names": ["-h", "--help"]},
 )
 
 
@@ -52,16 +53,16 @@ async def get_entity(client: DremioClient, path: str) -> dict:
 
 
 async def create_folder(client: DremioClient, path: str) -> dict:
-    """Create a folder at the given nested path using SQL."""
-    parts = parse_path(path)
-    if len(parts) == 1:
-        raise ValueError(
-            f"Cannot create a top-level folder '{parts[0]}'. "
-            "Use `dremio space create <name>` to create a space, "
-            "or provide a fully qualified path like `<space>.<folder>`."
-        )
+    """Create a folder at the given path using SQL."""
     from drs.utils import DremioAPIError
 
+    parts = parse_path(path)
+    if len(parts) == 1:
+        warn(
+            f"Top-level folder creation is deprecated. "
+            f"Use `dremio space create {parts[0]}` instead. "
+            "On Space-Plugin-enabled clusters this will fail."
+        )
     quoted = quote_path_sql(path)
     result = await run_query(client, f"CREATE FOLDER {quoted}")
     if result.get("state") == "FAILED":
@@ -170,14 +171,17 @@ def cli_get(
 @app.command("create")
 def cli_create(
     path: str = typer.Argument(
-        help="Dot-separated folder path (e.g., myspace.newfolder). Must be nested inside a space."
+        help="Dot-separated folder path (e.g., myspace.newfolder). For top-level spaces use `dremio space create`."
     ),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
     """Create a folder at the given path.
 
-    Path must be nested inside a space (e.g., 'Analytics.reports').
-    To create a top-level space, use `dremio space create <name>` instead.
+    Nested paths (e.g. 'Analytics.reports') create a folder inside a space.
+    Single-component paths attempt top-level creation for compatibility with
+    pre-Space-Plugin clusters; this is deprecated — use `dremio space create`
+    instead. On Space-Plugin-enabled clusters, single-component paths will
+    fail server-side.
     """
     client = _get_client()
     _run_command(create_folder(client, path), client, fmt)
@@ -189,7 +193,10 @@ def cli_delete(
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted without deleting"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Delete a catalog entity (space, folder, view, etc.). Cannot be undone."""
+    """Delete a nested catalog entity by path. Cannot be undone.
+
+    Single-component paths (top-level spaces) are rejected — use `dremio space delete` instead.
+    """
     client = _get_client()
     if dry_run:
         _run_command(get_folder(client, path), client, fmt)

@@ -121,3 +121,8 @@ def _list_table(rows: list) -> str:
 def error(msg: str) -> None:
     """Print error to stderr."""
     print(f"Error: {msg}", file=sys.stderr)
+
+
+def warn(msg: str) -> None:
+    """Print a deprecation warning to stderr without exiting."""
+    print(f"Warning: {msg}", file=sys.stderr)
