@@ -115,7 +115,8 @@ If this returns `{"job_id": "...", "state": "COMPLETED", "rowCount": 1, "rows": 
 | Group | Commands | What it does |
 |-------|----------|--------------|
 | `dremio query` | `run`, `status`, `cancel` | Execute SQL, check job status, cancel running jobs |
-| `dremio folder` | `list`, `get`, `create`, `delete`, `grants` | Browse and manage spaces/folders, view ACLs |
+| `dremio space` | `list`, `get`, `create`, `delete` | Manage top-level spaces in the catalog |
+| `dremio folder` | `list`, `get`, `create`, `delete`, `grants` | Browse top-level catalog entities and manage nested folders, view ACLs |
 | `dremio schema` | `describe`, `lineage`, `sample` | Column types, dependency graph, preview rows |
 | `dremio wiki` | `get`, `update` | Read and update wiki documentation on entities |
 | `dremio tag` | `get`, `update` | Read and update tags on entities |
@@ -214,7 +215,8 @@ Every Dremio object has consistent CLI commands using standard CRUD verbs (`list
 
 | Object | List | Get | Create | Update | Delete |
 |--------|------|-----|--------|--------|--------|
-| **Spaces/Folders** | `folder list` | `folder get` | `folder create` | — | `folder delete` |
+| **Spaces** | `space list` | `space get` | `space create` | — | `space delete` |
+| **Folders** | — | `folder get` | `folder create` | — | `folder delete` |
 | **Tables/Views** | `folder get` | `schema describe/sample` | `query run` (DDL) | `query run` (DDL) | `folder delete` |
 | **Wiki** | — | `wiki get` | `wiki update` | `wiki update` | — |
 | **Tags** | — | `tag get` | `tag update` | `tag update` | — |
@@ -226,7 +228,7 @@ Every Dremio object has consistent CLI commands using standard CRUD verbs (`list
 | **Projects** | `project list` | `project get` | `project create` | `project update` | `project delete` |
 | **Jobs** | `job list` | `job get/profile` | `query run` | — | `query cancel` |
 
-`folder create` uses SQL under the hood (`CREATE SPACE` for top-level, `CREATE FOLDER` for nested paths). All other mutations use the REST API.
+`space create` uses SQL (`CREATE SPACE`) for top-level space creation. `folder create` uses `CREATE FOLDER` for all paths; single-component paths are deprecated and may fail on Space-Plugin-enabled clusters — use `dremio space create` instead. All other mutations use the REST API.
 
 ## How it works
 
@@ -360,6 +362,7 @@ src/drs/
   introspect.py    # Command schema registry for dremio describe
   commands/
     query.py       # run, status, cancel
+    space.py       # list, get, create, delete
     folder.py      # list, get, create, delete, grants
     schema.py      # describe, lineage, sample
     wiki.py        # get, update
