@@ -187,6 +187,37 @@ async def test_update_skill_applies_overrides_manifest_update_and_explicit_tag(m
 
 
 @pytest.mark.asyncio
+async def test_update_skill_can_clear_metadata(mock_client) -> None:
+    mock_client.get_skill = AsyncMock(
+        return_value={
+            "id": "skill-1",
+            "name": "Old",
+            "description": "Old description",
+            "promptText": "Old prompt",
+            "status": "DRAFT",
+            "activationScope": "ALL",
+            "tag": "7",
+        }
+    )
+    mock_client.update_skill = AsyncMock(return_value={"id": "skill-1"})
+
+    await update_skill(mock_client, "skill-1", metadata=[""])
+
+    mock_client.update_skill.assert_called_once_with(
+        "skill-1",
+        {
+            "name": "Old",
+            "description": "Old description",
+            "promptText": "Old prompt",
+            "status": "DRAFT",
+            "tag": "7",
+            "activationScope": "ALL",
+            "manifestUpdate": {"metadata": {}},
+        },
+    )
+
+
+@pytest.mark.asyncio
 async def test_update_skill_rejects_two_prompt_sources(mock_client, tmp_path: Path) -> None:
     prompt_file = tmp_path / "prompt.md"
     prompt_file.write_text("Prompt from file")

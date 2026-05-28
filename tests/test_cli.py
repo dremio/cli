@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+import json
+
 from typer.testing import CliRunner
 
 from drs import __version__
@@ -41,3 +43,21 @@ def test_help_short_flag() -> None:
     result = runner.invoke(app, ["-h"])
     assert result.exit_code == 0
     assert f"(version {__version__})" in result.output
+
+
+def test_skill_help_is_registered() -> None:
+    result = runner.invoke(app, ["skill", "--help"])
+    assert result.exit_code == 0
+    assert "Manage saved AI Agent Skills" in result.output
+    assert "create" in result.output
+    assert "update" in result.output
+
+
+def test_describe_skill_create_is_registered() -> None:
+    result = runner.invoke(app, ["describe", "skill.create"])
+    assert result.exit_code == 0
+
+    schema = json.loads(result.output)
+    assert schema["group"] == "skill"
+    assert schema["command"] == "create"
+    assert schema["endpoints"] == ["POST /v1/projects/{pid}/agent/skills"]

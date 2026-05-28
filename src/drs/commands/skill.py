@@ -180,6 +180,8 @@ def _parse_tags(tags: str | None) -> list[str] | None:
 def _parse_metadata(metadata: list[str] | None) -> dict[str, str] | None:
     if metadata is None:
         return None
+    if not metadata or (len(metadata) == 1 and not metadata[0].strip()):
+        return {}
     parsed: dict[str, str] = {}
     for item in metadata:
         if "=" not in item:
@@ -313,7 +315,9 @@ def cli_update(
     tag: str | None = typer.Option(None, "--tag", help="Optimistic concurrency tag; defaults to fetched Skill tag"),
     when_to_use: str | None = typer.Option(None, "--when-to-use", help="Replace or clear discovery selection hint"),
     tags: str | None = typer.Option(None, "--tags", help="Comma-separated tags; empty string clears tags"),
-    metadata: list[str] | None = typer.Option(None, "--metadata", help="Metadata entry as key=value; repeatable"),
+    metadata: list[str] | None = typer.Option(
+        None, "--metadata", help="Metadata entry as key=value; repeatable; empty string clears metadata"
+    ),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
     """Update a saved Skill by fetching existing values and applying overrides."""
