@@ -126,6 +126,7 @@ If this returns `{"job_id": "...", "state": "COMPLETED", "rowCount": 1, "rows": 
 | `dremio role` | `list`, `get`, `create`, `update`, `delete` | Full CRUD for organization roles |
 | `dremio grant` | `get`, `update`, `delete` | Manage grants on projects, engines, org resources |
 | `dremio project` | `list`, `get`, `create`, `update`, `delete` | Full CRUD for Dremio Cloud projects |
+| `dremio skill` | `list`, `get`, `create`, `update`, `delete` | Manage saved AI Agent Skills |
 | `dremio search` | *(top-level)* | Full-text search across all catalog entities |
 | `dremio describe` | *(top-level)* | Machine-readable schema for any command |
 
@@ -171,7 +172,14 @@ dremio job list --status FAILED --output pretty
 
 # Audit what roles and permissions a user has
 dremio user audit rahim.bhojani
+
+# Manage saved AI Agent Skills
+dremio skill list --status DRAFT
+dremio skill create --name "Revenue analyst" --description "Helps analyze revenue questions." --prompt-file ./skill.md
+dremio skill update skill-abc --status PUBLISHED --tag 7
 ```
+
+Saved Skill commands require the project Skills feature to be enabled. If it is disabled, the CLI returns the API's feature-disabled error.
 
 ### Output formats
 
@@ -271,6 +279,7 @@ All endpoints target `https://api.dremio.cloud`. See the [Dremio Cloud API refer
 | `GET /v1/roles[/{id}]`, `GET /v1/roles/name/{name}` | `role list/get` | [Roles](https://docs.dremio.com/dremio-cloud/api/) |
 | `POST /v1/roles`, `PUT /v1/roles/{id}`, `DELETE /v1/roles/{id}` | `role create/update/delete` | [Roles](https://docs.dremio.com/dremio-cloud/api/) |
 | `GET/PUT/DELETE /v1/{scope}/{id}/grants/{type}/{id}` | `grant get/update/delete` | [Grants](https://docs.dremio.com/dremio-cloud/api/) |
+| `GET/POST/PUT/DELETE /v1/projects/{pid}/agent/skills[/{id}]` | `skill list/get/create/update/delete` | AI Agent Skills |
 
 Commands that query system tables (`job list`, `job profile`, `reflection list`, `schema sample`) use `POST /v0/projects/{pid}/sql` to submit SQL against `sys.project.*` tables.
 
@@ -371,6 +380,7 @@ src/drs/
     role.py        # list, get, create, update, delete
     grant.py       # get, update, delete
     project.py     # list, get, create, update, delete
+    skill.py       # list, get, create, update, delete
 ```
 
 ## Related projects
