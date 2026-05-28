@@ -95,6 +95,27 @@ class TestGrantURLs:
         assert url == "https://api.dremio.cloud/v1/orgs/org-1/grants/user/user-1"
 
 
+class TestSkillURLs:
+    def test_agent_skill_url(self, client: DremioClient) -> None:
+        assert client._agent("/skills") == "https://api.dremio.cloud/v1/projects/proj-123/agent/skills"
+
+    @pytest.mark.asyncio
+    async def test_list_skills_routes_to_agent_skills(self, client: DremioClient) -> None:
+        captured: dict = {}
+
+        async def _capture(request: httpx.Request) -> httpx.Response:
+            captured["url"] = str(request.url)
+            return httpx.Response(200, json={"data": []})
+
+        client._client = httpx.AsyncClient(transport=httpx.MockTransport(_capture))
+
+        await client.list_skills(status="DRAFT", limit=1, page_token="next")
+
+        assert captured["url"] == (
+            "https://api.dremio.cloud/v1/projects/proj-123/agent/skills?limit=1&status=DRAFT&pageToken=next"
+        )
+
+
 class TestClientHeaders:
     def test_auth_header(self, client: DremioClient) -> None:
         assert client._client.headers["authorization"] == "Bearer test-token"
