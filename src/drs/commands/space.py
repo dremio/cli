@@ -93,7 +93,7 @@ async def delete_space(client: DremioClient, name: str) -> dict:
 def _require_space_entity(name: str, entity: dict) -> None:
     kind = catalog_entity_kind(entity)
     if kind != "SPACE":
-        kind = kind.lower() or "entity"
+        kind = kind.lower() or "unknown entity"
         raise SpaceEntityTypeUnsupported(name, kind)
 
 
@@ -180,6 +180,4 @@ def cli_delete(
 
 
 async def _dry_run_space_delete(client: DremioClient, name: str) -> dict:
-    entity = await get_space(client, name)
-    _require_space_entity(name, entity)
-    return entity
+    return await get_space(client, name)

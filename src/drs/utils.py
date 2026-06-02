@@ -209,7 +209,8 @@ class SpaceEntityTypeUnsupported(ValueError):
     def __init__(self, path: str, entity_type: str) -> None:
         self.path = path
         self.entity_type = entity_type
-        super().__init__(f"'{path}' is a {entity_type}, not a space.")
+        article = "an" if entity_type[:1].lower() in {"a", "e", "i", "o", "u"} else "a"
+        super().__init__(f"'{path}' is {article} {entity_type}, not a space.")
 
 
 def handle_api_error(exc: httpx.HTTPStatusError) -> DremioAPIError:
