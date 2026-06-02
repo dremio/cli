@@ -76,7 +76,9 @@ async def get_space(client: DremioClient, name: str) -> dict:
     """Get space metadata by name."""
     if len(parse_path(name)) > 1:
         raise NestedPathUnsupported(name, "space.get", f"dremio folder get {name}")
-    return await get_entity(client, name)
+    entity = await get_entity(client, name)
+    _require_space_entity(name, entity)
+    return entity
 
 
 async def delete_space(client: DremioClient, name: str) -> dict:
@@ -134,7 +136,7 @@ def cli_get(
     """Get metadata for a space by name."""
     try:
         result = asyncio.run(_execute_command(lambda client: get_space(client, name)))
-    except (DremioAPIError, NestedPathUnsupported) as exc:
+    except (DremioAPIError, NestedPathUnsupported, SpaceEntityTypeUnsupported) as exc:
         error(str(exc))
         raise typer.Exit(1)
     output(result, fmt, fields=fields)
