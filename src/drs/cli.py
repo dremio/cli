@@ -42,6 +42,7 @@ from drs.commands import (
     schema,
     setup,
     skill,
+    space,
     tag,
     user,
     wiki,
@@ -71,6 +72,7 @@ app.add_typer(grant.app, name="grant")
 app.add_typer(project.app, name="project")
 app.add_typer(chat.app, name="chat")
 app.add_typer(skill.app, name="skill")
+app.add_typer(space.app, name="space")
 app.command("setup")(setup.setup_command)
 
 # Global state for config

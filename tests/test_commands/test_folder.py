@@ -21,7 +21,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from drs.commands.folder import create_folder, delete_entity, get_entity, grants
+from drs.commands.folder import create_folder, delete_entity, delete_folder, get_entity, get_folder, grants
+from drs.utils import DremioAPIError
 
 
 @pytest.mark.asyncio
@@ -46,14 +47,56 @@ async def test_get_entity_handles_dots_in_quotes(mock_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_folder_single_creates_space(mock_client) -> None:
-    """Single-component path should CREATE SPACE."""
+async def test_create_folder_single_emits_deprecation_warning(mock_client, capsys) -> None:
+    """Single-component path emits a deprecation warning to stderr."""
     mock_client.submit_sql = AsyncMock(return_value={"id": "job-1"})
     mock_client.get_job_status = AsyncMock(return_value={"jobState": "COMPLETED", "rowCount": 0})
     mock_client.get_job_results = AsyncMock(return_value={"rows": []})
     await create_folder(mock_client, "Analytics")
+    stderr = capsys.readouterr().err
+    assert "deprecated" in stderr
+    assert "dremio space create Analytics" in stderr
+
+
+@pytest.mark.asyncio
+async def test_create_folder_single_succeeds_on_pre_sp(mock_client) -> None:
+    """On pre-SP clusters, single-component CREATE FOLDER succeeds."""
+    mock_client.submit_sql = AsyncMock(return_value={"id": "job-1"})
+    mock_client.get_job_status = AsyncMock(return_value={"jobState": "COMPLETED", "rowCount": 0})
+    mock_client.get_job_results = AsyncMock(return_value={"rows": []})
+    result = await create_folder(mock_client, "Analytics")
+    assert result["state"] == "COMPLETED"
     sql = mock_client.submit_sql.call_args[0][0]
-    assert 'CREATE SPACE "Analytics"' in sql
+    assert sql == 'CREATE FOLDER "Analytics"'
+
+
+@pytest.mark.asyncio
+async def test_create_folder_single_sp_failure_raises_error(mock_client) -> None:
+    """On SP-enabled clusters, single-component CREATE FOLDER fails server-side and raises DremioAPIError."""
+    mock_client.submit_sql = AsyncMock(return_value={"id": "job-1"})
+    mock_client.get_job_status = AsyncMock(
+        return_value={
+            "jobState": "FAILED",
+            "errorMessage": "Top-level folder creation is not allowed. Use CREATE SPACE instead.",
+        }
+    )
+    mock_client.get_job_results = AsyncMock(return_value={"rows": []})
+    with pytest.raises(DremioAPIError, match="Top-level folder creation is not allowed"):
+        await create_folder(mock_client, "Analytics")
+
+
+@pytest.mark.asyncio
+async def test_get_folder_single_raises_error(mock_client) -> None:
+    """Single-component path in get_folder should raise ValueError pointing to `dremio space get`."""
+    with pytest.raises(ValueError, match="dremio space get"):
+        await get_folder(mock_client, "Analytics")
+
+
+@pytest.mark.asyncio
+async def test_delete_folder_single_raises_error(mock_client) -> None:
+    """Single-component path in delete_folder should raise ValueError pointing to `dremio space delete`."""
+    with pytest.raises(ValueError, match="dremio space delete"):
+        await delete_folder(mock_client, "Analytics")
 
 
 @pytest.mark.asyncio
@@ -66,6 +109,37 @@ async def test_create_folder_nested_creates_folder(mock_client) -> None:
     sql = mock_client.submit_sql.call_args[0][0]
     assert "CREATE FOLDER" in sql
     assert '"Analytics"."reports"' in sql
+
+
+@pytest.mark.asyncio
+async def test_create_folder_failure_is_raised(mock_client) -> None:
+    """SQL failures (e.g., namespace not found) are raised as DremioAPIError."""
+    mock_client.submit_sql = AsyncMock(return_value={"id": "job-1"})
+    mock_client.get_job_status = AsyncMock(
+        return_value={
+            "jobState": "FAILED",
+            "errorMessage": "NoSuchNamespaceException: Namespace does not exist: NoSuchSpace",
+        }
+    )
+    mock_client.get_job_results = AsyncMock(return_value={"rows": []})
+    with pytest.raises(DremioAPIError, match="Namespace does not exist"):
+        await create_folder(mock_client, "NoSuchSpace.folder1")
+
+
+@pytest.mark.asyncio
+async def test_get_folder_nested_delegates_to_get_entity(mock_client) -> None:
+    mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "f1", "entityType": "folder"})
+    result = await get_folder(mock_client, "myspace.reports")
+    mock_client.get_catalog_by_path.assert_called_once_with(["myspace", "reports"])
+    assert result["id"] == "f1"
+
+
+@pytest.mark.asyncio
+async def test_delete_folder_nested_delegates_to_delete_entity(mock_client) -> None:
+    mock_client.get_catalog_by_path = AsyncMock(return_value={"id": "f1", "tag": "v1"})
+    mock_client.delete_catalog_entity = AsyncMock(return_value={"status": "ok"})
+    await delete_folder(mock_client, "myspace.reports")
+    mock_client.delete_catalog_entity.assert_called_once_with("f1", tag="v1")
 
 
 @pytest.mark.asyncio

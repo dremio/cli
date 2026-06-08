@@ -137,6 +137,12 @@ def quote_path_sql(path: str) -> str:
     return ".".join(f'"{p}"' for p in parts)
 
 
+def catalog_entity_kind(entity: dict[str, Any]) -> str:
+    """Return a normalized catalog kind for mixed API response shapes."""
+    kind_value = entity.get("containerType") or entity.get("entityType")
+    return str(kind_value or "").upper()
+
+
 # Valid job states for filtering
 VALID_JOB_STATES = {
     "COMPLETED",
@@ -185,6 +191,26 @@ class DremioAPIError(Exception):
         if self.url:
             d["url"] = self.url
         return d
+
+
+class NestedPathUnsupported(ValueError):
+    """Raised when a command only supports top-level catalog names."""
+
+    def __init__(self, path: str, command: str, replacement: str) -> None:
+        self.path = path
+        self.command = command
+        self.replacement = replacement
+        super().__init__(f"'{path}' cannot be used here. Use `{replacement}` instead.")
+
+
+class SpaceEntityTypeUnsupported(ValueError):
+    """Raised when a top-level catalog entity is not a space."""
+
+    def __init__(self, path: str, entity_type: str) -> None:
+        self.path = path
+        self.entity_type = entity_type
+        article = "an" if entity_type[:1].lower() in {"a", "e", "i", "o", "u"} else "a"
+        super().__init__(f"'{path}' is {article} {entity_type}, not a space.")
 
 
 def handle_api_error(exc: httpx.HTTPStatusError) -> DremioAPIError:

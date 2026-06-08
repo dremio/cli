@@ -115,17 +115,17 @@ COMMAND_SCHEMAS: dict[str, dict] = {
     "folder.create": {
         "group": "folder",
         "command": "create",
-        "description": "Create a space (single name) or folder (nested path) using SQL.",
+        "description": "Create a folder using SQL. Nested paths (e.g. space.folder) create a folder inside a space. Single-component paths are deprecated; use `dremio space create` instead — on Space-Plugin-enabled clusters they will fail server-side.",
         "mechanism": "SQL",
         "mutating": True,
-        "sql_template": 'CREATE SPACE "{name}" / CREATE FOLDER {path}',
+        "sql_template": "CREATE FOLDER {path}",
         "parameters": [
             {
                 "name": "path",
                 "type": "string",
                 "required": True,
                 "positional": True,
-                "description": "Space name or dot-separated folder path",
+                "description": "Dot-separated folder path (e.g. myspace.newfolder). Single-component paths are deprecated; use `dremio space create <name>` for top-level spaces.",
             },
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
@@ -133,7 +133,7 @@ COMMAND_SCHEMAS: dict[str, dict] = {
     "folder.delete": {
         "group": "folder",
         "command": "delete",
-        "description": "Delete a catalog entity (space, folder, view, etc.). Cannot be undone.",
+        "description": "Delete a nested catalog entity by path. Single-component paths are rejected — use `dremio space delete` instead. Cannot be undone.",
         "mechanism": "REST",
         "mutating": True,
         "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}", "DELETE /v0/projects/{pid}/catalog/{id}"],
@@ -151,6 +151,55 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{path}"],
         "parameters": [
             {"name": "path", "type": "string", "required": True, "positional": True},
+            {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
+        ],
+    },
+    # -- Space --
+    "space.list": {
+        "group": "space",
+        "command": "list",
+        "description": "List all spaces in the catalog (containerType == SPACE).",
+        "mechanism": "REST",
+        "endpoints": ["GET /v0/projects/{pid}/catalog"],
+        "parameters": [
+            {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
+            {"name": "fields", "type": "string", "required": False},
+        ],
+    },
+    "space.get": {
+        "group": "space",
+        "command": "get",
+        "description": "Get metadata for a top-level space by name. Rejects nested paths.",
+        "mechanism": "REST",
+        "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{name}"],
+        "parameters": [
+            {"name": "name", "type": "string", "required": True, "positional": True, "description": "Space name"},
+            {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
+            {"name": "fields", "type": "string", "required": False},
+        ],
+    },
+    "space.create": {
+        "group": "space",
+        "command": "create",
+        "description": "Create a space. Runs CREATE SPACE SQL; on pre-Space-Plugin clusters falls back to CREATE FOLDER on the legacy sentinel.",
+        "mechanism": "SQL",
+        "mutating": True,
+        "sql_template": 'CREATE SPACE "{name}"',
+        "parameters": [
+            {"name": "name", "type": "string", "required": True, "positional": True, "description": "Space name"},
+            {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
+        ],
+    },
+    "space.delete": {
+        "group": "space",
+        "command": "delete",
+        "description": "Delete a top-level space by name. Validates containerType == SPACE before deleting. Rejects nested paths.",
+        "mechanism": "REST",
+        "mutating": True,
+        "endpoints": ["GET /v0/projects/{pid}/catalog/by-path/{name}", "DELETE /v0/projects/{pid}/catalog/{id}"],
+        "parameters": [
+            {"name": "name", "type": "string", "required": True, "positional": True, "description": "Space name"},
+            {"name": "dry_run", "type": "boolean", "required": False, "default": False},
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },

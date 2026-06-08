@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""dremio folder — manage spaces and folders in the Dremio catalog."""
+"""dremio folder — manage nested folders and list top-level catalog entities."""
 
 from __future__ import annotations
 
@@ -24,11 +24,12 @@ import typer
 
 from drs.client import DremioClient
 from drs.commands.query import run_query
-from drs.output import OutputFormat, error, output
-from drs.utils import handle_api_error, parse_path, quote_path_sql
+from drs.output import OutputFormat, error, output, warn
+from drs.utils import DremioAPIError, NestedPathUnsupported, handle_api_error, parse_path, quote_path_sql
 
 app = typer.Typer(
-    help="Manage spaces and folders in the Dremio catalog.", context_settings={"help_option_names": ["-h", "--help"]}
+    help="Manage nested folders and list top-level catalog entities. Use `dremio space` for top-level spaces.",
+    context_settings={"help_option_names": ["-h", "--help"]},
 )
 
 
@@ -52,14 +53,19 @@ async def get_entity(client: DremioClient, path: str) -> dict:
 
 
 async def create_folder(client: DremioClient, path: str) -> dict:
-    """Create a space (single component) or folder (nested path) using SQL."""
+    """Create a folder at the given path using SQL."""
     parts = parse_path(path)
     if len(parts) == 1:
-        sql = f'CREATE SPACE "{parts[0]}"'
-    else:
-        quoted = quote_path_sql(path)
-        sql = f"CREATE FOLDER {quoted}"
-    return await run_query(client, sql)
+        warn(
+            f"Top-level folder creation is deprecated. "
+            f"Use `dremio space create {parts[0]}` instead. "
+            "On Dremio Cloud, top-level folder creation is deprecated and may fail once spaces are enforced."
+        )
+    quoted = quote_path_sql(path)
+    result = await run_query(client, f"CREATE FOLDER {quoted}")
+    if result.get("state") == "FAILED":
+        raise DremioAPIError(0, result.get("error", ""))
+    return result
 
 
 async def delete_entity(client: DremioClient, path: str) -> dict:
@@ -75,6 +81,22 @@ async def delete_entity(client: DremioClient, path: str) -> dict:
         return await client.delete_catalog_entity(entity_id, tag=tag)
     except httpx.HTTPStatusError as exc:
         raise handle_api_error(exc) from exc
+
+
+async def get_folder(client: DremioClient, path: str) -> dict:
+    """Get a folder by path; rejects top-level (single-component) paths."""
+    parts = parse_path(path)
+    if len(parts) == 1:
+        raise NestedPathUnsupported(parts[0], "folder.get", f"dremio space get {parts[0]}")
+    return await get_entity(client, path)
+
+
+async def delete_folder(client: DremioClient, path: str) -> dict:
+    """Delete a folder by path; rejects top-level (single-component) paths."""
+    parts = parse_path(path)
+    if len(parts) == 1:
+        raise NestedPathUnsupported(parts[0], "folder.delete", f"dremio space delete {parts[0]}")
+    return await delete_entity(client, path)
 
 
 async def grants(client: DremioClient, path: str) -> dict:
@@ -111,12 +133,7 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
     try:
         result = asyncio.run(_execute())
     except Exception as exc:
-        from drs.utils import DremioAPIError
-
-        if isinstance(exc, DremioAPIError):
-            error(str(exc))
-            raise typer.Exit(1)
-        if isinstance(exc, ValueError):
+        if isinstance(exc, (DremioAPIError, NestedPathUnsupported)):
             error(str(exc))
             raise typer.Exit(1)
         raise
@@ -141,20 +158,23 @@ def cli_get(
 ) -> None:
     """Get full metadata for a catalog entity by path."""
     client = _get_client()
-    _run_command(get_entity(client, path), client, fmt, fields=fields)
+    _run_command(get_folder(client, path), client, fmt, fields=fields)
 
 
 @app.command("create")
 def cli_create(
     path: str = typer.Argument(
-        help="Space name (single component) or dot-separated folder path (e.g., myspace.newfolder)"
+        help="Dot-separated folder path (e.g., myspace.newfolder). For top-level spaces use `dremio space create`."
     ),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Create a space or folder.
+    """Create a folder at the given path.
 
-    Single path component (e.g., 'Analytics') creates a space.
-    Nested path (e.g., 'Analytics.reports') creates a folder.
+    Nested paths (e.g. 'Analytics.reports') create a folder inside a space.
+    Single-component paths attempt top-level creation for compatibility with
+    older Dremio Cloud deployments; this is deprecated — use `dremio space create`
+    instead. On deployments where spaces are enforced, single-component paths
+    will fail server-side.
     """
     client = _get_client()
     _run_command(create_folder(client, path), client, fmt)
@@ -166,12 +186,15 @@ def cli_delete(
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted without deleting"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
 ) -> None:
-    """Delete a catalog entity (space, folder, view, etc.). Cannot be undone."""
+    """Delete a nested catalog entity by path. Cannot be undone.
+
+    Single-component paths (top-level spaces) are rejected — use `dremio space delete` instead.
+    """
     client = _get_client()
     if dry_run:
-        _run_command(get_entity(client, path), client, fmt)
+        _run_command(get_folder(client, path), client, fmt)
         return
-    _run_command(delete_entity(client, path), client, fmt)
+    _run_command(delete_folder(client, path), client, fmt)
 
 
 @app.command("grants")
