@@ -42,40 +42,39 @@ console = Console()
 err_console = Console(stderr=True)
 
 
-def _active_token_env_var() -> str | None:
-    """Return the token env var that load_config() will use, if one is set."""
-    if os.environ.get("DREMIO_TOKEN"):
-        return "DREMIO_TOKEN"
-    if os.environ.get("DREMIO_PAT"):
-        return "DREMIO_PAT"
-    return None
+def _set_token_env_vars() -> list[str]:
+    """Return token env vars that will override config, in resolution order."""
+    return [name for name in ("DREMIO_TOKEN", "DREMIO_PAT") if os.environ.get(name)]
 
 
 def _warn_token_env_override(config_path: Path) -> None:
     """Warn when an env token will override the config written by setup."""
-    token_env = _active_token_env_var()
-    if token_env is None:
+    token_envs = _set_token_env_vars()
+    if not token_envs:
         return
+    token_env_list = " and ".join(token_envs)
+    token_env_verb = "is" if len(token_envs) == 1 else "are"
+    unset_command = f"unset {' '.join(token_envs)}"
 
     console.print()
     console.print(
         Panel(
-            f"[bold yellow]{token_env} is set in your environment.[/bold yellow]\n\n"
+            f"[bold yellow]{token_env_list} {token_env_verb} set in your environment.[/bold yellow]\n\n"
             "Dremio CLI resolves credentials in this order:\n"
             "  1. --token\n"
             "  2. DREMIO_TOKEN / DREMIO_PAT\n"
             f"  3. {config_path}\n\n"
             "That means future [bold]dremio[/bold] commands will use the environment token, "
             "not the PAT saved by this setup wizard.\n\n"
-            f"To use the saved config, run [bold]unset {token_env}[/bold] before using dremio. "
-            f"To keep using environment auth, update [bold]{token_env}[/bold] to the PAT you just entered.",
+            f"To use the saved config, run [bold]{unset_command}[/bold] before using dremio. "
+            f"To keep using environment auth, update [bold]{token_env_list}[/bold] to the PAT you just entered.",
             title="Environment Token Overrides Config",
             border_style="yellow",
         )
     )
     if not typer.confirm("Continue setup anyway?", default=False):
         console.print(
-            f"Setup cancelled. Unset or update {token_env}, then run [bold cyan]dremio setup[/bold cyan] again."
+            f"Setup cancelled. Unset or update {token_env_list}, then run [bold cyan]dremio setup[/bold cyan] again."
         )
         raise typer.Exit(1)
 
