@@ -36,7 +36,8 @@ Run it:
 > **Note (internal-only prerequisite):** `scripts/parse_jssdk.py` requires the SDK's TypeScript source (`src/*.ts`), which is only available from Dremio's internal SDK repository. The public npm package `@dremio/js-sdk` ships compiled `dist/` output only and cannot be parsed by this script.
 
 ```bash
-git clone --depth 1 https://github.com/dremio/js-sdk.git /tmp/js-sdk
+# <internal-js-sdk-repo> is Dremio's internal SDK source repository (not public).
+git clone --depth 1 <internal-js-sdk-repo> /tmp/js-sdk
 python scripts/parse_jssdk.py --sdk-path /tmp/js-sdk                    # generate registry
 python scripts/parse_jssdk.py --sdk-path /tmp/js-sdk --compare          # compare vs drs
 ```
