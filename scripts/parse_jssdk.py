@@ -19,9 +19,14 @@
 Generates api_registry.json — a machine-readable map of every Dremio API
 endpoint the js-sdk calls, grouped by resource and SKU (oss/enterprise/cloud).
 
+This parser needs the SDK's TypeScript source (src/*.ts), which is only
+available from Dremio's internal SDK repository. The public npm package
+@dremio/js-sdk ships compiled dist/ output only and cannot be parsed here.
+
 Usage:
-    # Clone js-sdk first (or point to existing checkout)
-    git clone https://github.com/dremio/js-sdk.git /tmp/js-sdk
+    # Clone the internal js-sdk source first (or point to existing checkout).
+    # <internal-js-sdk-repo> is Dremio's internal SDK repository (not public).
+    git clone <internal-js-sdk-repo> /tmp/js-sdk
 
     # Generate registry
     python scripts/parse_jssdk.py --sdk-path /tmp/js-sdk
