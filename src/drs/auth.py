@@ -19,10 +19,10 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 DEFAULT_CONFIG_PATH = Path.home() / ".config" / "dremioai" / "config.yaml"
 DEFAULT_URI = "https://api.dremio.cloud"
@@ -30,8 +30,16 @@ DEFAULT_URI = "https://api.dremio.cloud"
 
 class DrsConfig(BaseModel):
     uri: str = DEFAULT_URI
-    pat: str
+    pat: str | None = None
     project_id: str
+    auth_method: Literal["pat", "oauth"] = "pat"
+    oauth_access_token: str | None = None
+
+    @model_validator(mode="after")
+    def _require_credential(self) -> "DrsConfig":
+        if not self.pat and not self.oauth_access_token:
+            raise ValueError("Either 'pat' or 'oauth_access_token' must be provided.")
+        return self
 
 
 def load_config(
@@ -58,6 +66,7 @@ def load_config(
             "uri": raw.get("uri", raw.get("endpoint")),
             "pat": raw.get("pat", raw.get("token")),
             "project_id": raw.get("project_id", raw.get("projectId")),
+            "auth_method": raw.get("auth_method"),
         }
         file_values = {k: v for k, v in file_values.items() if v is not None}
 
@@ -82,5 +91,16 @@ def load_config(
         merged["project_id"] = cli_project_id
     if cli_token:
         merged["pat"] = cli_token
+
+    # If no PAT is available, try loading OAuth tokens from the token store.
+    if "pat" not in merged or not merged["pat"]:
+        from drs import token_store
+
+        uri = merged.get("uri", DEFAULT_URI)
+        tokens = token_store.load(uri)
+        if tokens is not None:
+            merged["auth_method"] = "oauth"
+            merged["oauth_access_token"] = tokens.access_token
+            merged.pop("pat", None)
 
     return DrsConfig(**merged)
