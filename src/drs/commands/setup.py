@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -39,6 +40,43 @@ REGIONS = {
 
 console = Console()
 err_console = Console(stderr=True)
+
+
+def _set_token_env_vars() -> list[str]:
+    """Return token env vars that will override config, in resolution order."""
+    return [name for name in ("DREMIO_TOKEN", "DREMIO_PAT") if os.environ.get(name)]
+
+
+def _warn_token_env_override(config_path: Path) -> None:
+    """Warn when an env token will override the config written by setup."""
+    token_envs = _set_token_env_vars()
+    if not token_envs:
+        return
+    token_env_list = " and ".join(token_envs)
+    token_env_verb = "is" if len(token_envs) == 1 else "are"
+    unset_command = f"unset {' '.join(token_envs)}"
+
+    console.print()
+    console.print(
+        Panel(
+            f"[bold yellow]{token_env_list} {token_env_verb} set in your environment.[/bold yellow]\n\n"
+            "Dremio CLI resolves credentials in this order:\n"
+            "  1. --token\n"
+            "  2. DREMIO_TOKEN / DREMIO_PAT\n"
+            f"  3. {config_path}\n\n"
+            "That means future [bold]dremio[/bold] commands will use the environment token, "
+            "not the PAT saved by this setup wizard.\n\n"
+            f"To use the saved config, run [bold]{unset_command}[/bold] before using dremio. "
+            f"To keep using environment auth, update [bold]{token_env_list}[/bold] to the PAT you just entered.",
+            title="Environment Token Overrides Config",
+            border_style="yellow",
+        )
+    )
+    if not typer.confirm("Continue setup anyway?", default=False):
+        console.print(
+            f"Setup cancelled. Unset or update {token_env_list}, then run [bold cyan]dremio setup[/bold cyan] again."
+        )
+        raise typer.Exit(1)
 
 
 async def validate_credentials(uri: str, pat: str, project_id: str) -> tuple[bool, str, dict[str, Any] | None]:
@@ -187,6 +225,8 @@ def setup_command(
         if not typer.confirm("Overwrite it?", default=False):
             console.print("Setup cancelled.")
             raise typer.Exit(0)
+
+    _warn_token_env_override(config_path)
 
     # Step 1: Region
     api_uri, app_url = _prompt_region()

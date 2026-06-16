@@ -31,6 +31,12 @@ from drs.commands.setup import validate_credentials, write_config
 runner = CliRunner()
 
 
+@pytest.fixture(autouse=True)
+def clear_dremio_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("DREMIO_TOKEN", "DREMIO_PAT", "DREMIO_PROJECT_ID", "DREMIO_URI"):
+        monkeypatch.delenv(name, raising=False)
+
+
 def test_write_config(tmp_path) -> None:
     config_path = tmp_path / "config.yaml"
     write_config("https://api.eu.dremio.cloud", "my-pat", "my-project", config_path)
@@ -225,6 +231,68 @@ def test_setup_existing_config_overwrite(tmp_path) -> None:
     assert result.exit_code == 0
     data = yaml.safe_load(config_path.read_text())
     assert data["pat"] == "new-pat"
+
+
+def test_setup_warns_when_dremio_pat_overrides_config(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A DREMIO_PAT env var should be called out before writing config."""
+    config_path = tmp_path / "config.yaml"
+    monkeypatch.setenv("DREMIO_PAT", "env-pat")
+
+    with (
+        patch("drs.commands.setup.sys") as mock_sys,
+        patch("drs.commands.setup.DEFAULT_CONFIG_PATH", config_path),
+    ):
+        mock_sys.stdin.isatty.return_value = True
+        result = runner.invoke(app, ["setup"], input="n\n")
+
+    assert result.exit_code == 1
+    assert "DREMIO_PAT is set" in result.output
+    assert "will use the environment token" in result.output
+    assert "unset DREMIO_PAT" in result.output
+    assert not config_path.exists()
+
+
+def test_setup_warns_to_unset_both_token_env_vars(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """If both token env vars are set, both must be included in unset guidance."""
+    config_path = tmp_path / "config.yaml"
+    monkeypatch.setenv("DREMIO_TOKEN", "env-token")
+    monkeypatch.setenv("DREMIO_PAT", "env-pat")
+
+    with (
+        patch("drs.commands.setup.sys") as mock_sys,
+        patch("drs.commands.setup.DEFAULT_CONFIG_PATH", config_path),
+    ):
+        mock_sys.stdin.isatty.return_value = True
+        result = runner.invoke(app, ["setup"], input="n\n")
+
+    assert result.exit_code == 1
+    assert "DREMIO_TOKEN and DREMIO_PAT are set" in result.output
+    assert "unset DREMIO_TOKEN DREMIO_PAT" in result.output
+    assert not config_path.exists()
+
+
+def test_setup_can_continue_after_env_token_warning(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Accepting the env-token warning should continue through normal setup."""
+    config_path = tmp_path / "config.yaml"
+    monkeypatch.setenv("DREMIO_PAT", "env-pat")
+
+    mock_client = AsyncMock()
+    mock_client.get_project = AsyncMock(return_value={"id": "p1", "name": "Test Project"})
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("drs.commands.setup.sys") as mock_sys,
+        patch("drs.commands.setup.DremioClient", return_value=mock_client),
+        patch("drs.commands.setup.DEFAULT_CONFIG_PATH", config_path),
+    ):
+        mock_sys.stdin.isatty.return_value = True
+        result = runner.invoke(app, ["setup"], input="y\n1\nfile-pat\nfile-project\n")
+
+    assert result.exit_code == 0
+    assert "DREMIO_PAT is set" in result.output
+    data = yaml.safe_load(config_path.read_text())
+    assert data["pat"] == "file-pat"
+    assert data["project_id"] == "file-project"
 
 
 def test_setup_retry_then_abort(tmp_path) -> None:
