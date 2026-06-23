@@ -404,6 +404,33 @@ class DremioClient:
             self._agent(f"/conversations/{conversation_id}/runs/{run_id}:cancel"),
         )
 
+    # -- Skills (v1 project-scoped agent API) --
+
+    async def list_skills(
+        self,
+        status: str | None = None,
+        limit: int = 100,
+        page_token: str | None = None,
+    ) -> dict:
+        params: dict[str, str | int] = {"limit": limit}
+        if status:
+            params["status"] = status
+        if page_token:
+            params["pageToken"] = page_token
+        return await self._get(self._agent("/skills"), params=params)
+
+    async def get_skill(self, skill_id: str) -> dict:
+        return await self._get(self._agent(f"/skills/{skill_id}"))
+
+    async def create_skill(self, body: dict) -> dict:
+        return await self._post(self._agent("/skills"), json=body)
+
+    async def update_skill(self, skill_id: str, body: dict) -> dict:
+        return await self._put(self._agent(f"/skills/{skill_id}"), json=body)
+
+    async def delete_skill(self, skill_id: str) -> dict:
+        return await self._delete(self._agent(f"/skills/{skill_id}"))
+
     # -- Grants (v1) --
 
     async def get_grants(self, scope: str, scope_id: str, grantee_type: str, grantee_id: str) -> dict:

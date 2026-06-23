@@ -41,6 +41,7 @@ from drs.commands import (
     role,
     schema,
     setup,
+    skill,
     space,
     tag,
     user,
@@ -70,6 +71,7 @@ app.add_typer(role.app, name="role")
 app.add_typer(grant.app, name="grant")
 app.add_typer(project.app, name="project")
 app.add_typer(chat.app, name="chat")
+app.add_typer(skill.app, name="skill")
 app.add_typer(space.app, name="space")
 app.command("setup")(setup.setup_command)
 
