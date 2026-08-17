@@ -45,9 +45,10 @@ class DremioClient:
 
     def __init__(self, config: DrsConfig) -> None:
         self.config = config
+        token = config.oauth_access_token if "oauth" == config.auth_method else config.pat
         self._client = httpx.AsyncClient(
             headers={
-                "Authorization": f"Bearer {config.pat}",
+                "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
                 "User-Agent": f"dremio-cli/{__version__}",
             },
@@ -72,12 +73,46 @@ class DremioClient:
 
     # -- HTTP helpers with retry --
 
+    async def _refresh_oauth_token(self) -> None:
+        """Refresh the OAuth access token using the stored refresh token."""
+        from drs import oauth, token_store
+
+        tokens = token_store.load(self.config.uri)
+        if tokens is None or tokens.refresh_token is None:
+            raise RuntimeError("No refresh token available — please run 'dremio login' again.")
+
+        metadata = oauth.discover(self.config.uri)
+        new_tokens = oauth.refresh_access_token(
+            metadata.token_endpoint,
+            tokens.client_id,
+            tokens.client_secret,
+            tokens.refresh_token,
+        )
+        token_store.save(self.config.uri, new_tokens)
+        self._client.headers["authorization"] = f"Bearer {new_tokens.access_token}"
+        logger.info("OAuth access token refreshed successfully.")
+
     async def _request_with_retry(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         """Execute an HTTP request with retry on transient errors."""
+        auth_refreshed = False
         last_exc: Exception | None = None
         for attempt in range(_MAX_RETRIES):
             try:
                 resp = await self._client.request(method, url, **kwargs)
+                # 401 with OAuth: attempt one token refresh per call
+                if (
+                    resp.status_code == 401
+                    and "oauth" == self.config.auth_method
+                    and not auth_refreshed
+                ):
+                    logger.info("Received 401 — attempting OAuth token refresh.")
+                    try:
+                        await self._refresh_oauth_token()
+                    except Exception:
+                        logger.warning("OAuth token refresh failed.", exc_info=True)
+                        return resp
+                    auth_refreshed = True
+                    continue
                 if resp.status_code in _RETRYABLE_STATUS_CODES and attempt < _MAX_RETRIES - 1:
                     delay = _RETRY_BACKOFF[attempt]
                     logger.warning(

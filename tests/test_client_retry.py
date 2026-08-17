@@ -22,6 +22,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
+from drs.auth import DrsConfig
 from drs.client import DremioClient
 
 
@@ -154,3 +155,87 @@ async def test_retry_backoff_delays(config) -> None:
     assert mock_sleep.call_count == 2
     mock_sleep.assert_any_call(1.0)
     mock_sleep.assert_any_call(2.0)
+
+
+@pytest.mark.asyncio
+async def test_401_triggers_oauth_refresh() -> None:
+    """401 with OAuth auth should attempt token refresh and retry."""
+    oauth_config = DrsConfig(
+        uri="https://api.dremio.cloud",
+        oauth_access_token="old-token",
+        project_id="proj",
+        auth_method="oauth",
+    )
+    client = DremioClient(oauth_config)
+
+    unauthorized = httpx.Response(401, request=httpx.Request("GET", "https://example.com"))
+    ok_response = httpx.Response(200, json={"ok": True}, request=httpx.Request("GET", "https://example.com"))
+
+    client._client.request = AsyncMock(side_effect=[unauthorized, ok_response])
+
+    with patch.object(client, "_refresh_oauth_token", new_callable=AsyncMock) as mock_refresh:
+        result = await client._get("https://example.com/test")
+
+    assert result == {"ok": True}
+    mock_refresh.assert_awaited_once()
+    assert client._client.request.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_401_no_refresh_for_pat(config) -> None:
+    """401 with PAT auth should NOT attempt token refresh."""
+    client = DremioClient(config)
+
+    unauthorized = httpx.Response(401, json={"error": "unauthorized"}, request=httpx.Request("GET", "https://example.com"))
+    client._client.request = AsyncMock(return_value=unauthorized)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        await client._get("https://example.com/test")
+
+    assert client._client.request.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_401_refresh_failure_returns_original_response() -> None:
+    """When refresh fails, the original 401 response should be returned."""
+    oauth_config = DrsConfig(
+        uri="https://api.dremio.cloud",
+        oauth_access_token="old-token",
+        project_id="proj",
+        auth_method="oauth",
+    )
+    client = DremioClient(oauth_config)
+
+    unauthorized = httpx.Response(401, json={"error": "bad token"}, request=httpx.Request("GET", "https://example.com"))
+    client._client.request = AsyncMock(return_value=unauthorized)
+
+    with patch.object(client, "_refresh_oauth_token", new_callable=AsyncMock, side_effect=RuntimeError("no refresh")):
+        with pytest.raises(httpx.HTTPStatusError):
+            await client._get("https://example.com/test")
+
+    # Should only have tried once (no retry after failed refresh)
+    assert client._client.request.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_401_only_one_refresh_per_request() -> None:
+    """Only one refresh attempt per request — second 401 should not retry."""
+    oauth_config = DrsConfig(
+        uri="https://api.dremio.cloud",
+        oauth_access_token="old-token",
+        project_id="proj",
+        auth_method="oauth",
+    )
+    client = DremioClient(oauth_config)
+
+    unauthorized = httpx.Response(401, request=httpx.Request("GET", "https://example.com"))
+
+    # Both attempts return 401
+    client._client.request = AsyncMock(return_value=unauthorized)
+
+    with patch.object(client, "_refresh_oauth_token", new_callable=AsyncMock):
+        with pytest.raises(httpx.HTTPStatusError):
+            await client._get("https://example.com/test")
+
+    # 1st call -> 401 -> refresh -> 2nd call -> 401 -> return (no more refresh)
+    assert client._client.request.call_count == 2
