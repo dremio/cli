@@ -74,6 +74,34 @@ class TestCatalogURL:
     def test_catalog_entity_with_id(self, client: DremioClient) -> None:
         assert client._v3("/catalog/abc-123") == "https://api.dremio.cloud/v0/projects/proj-123/catalog/abc-123"
 
+    @pytest.mark.asyncio
+    async def test_format_catalog_table_posts_expected_body(self, client: DremioClient) -> None:
+        captured: dict = {}
+
+        async def _capture(request: httpx.Request) -> httpx.Response:
+            import json
+
+            captured["url"] = str(request.url)
+            captured["body"] = json.loads(request.content)
+            return httpx.Response(200, json={"id": "ds-1", "path": ["dataproducts", "dre-unstructured", "orders"]})
+
+        client._client = httpx.AsyncClient(transport=httpx.MockTransport(_capture))
+
+        await client.format_catalog_table(
+            "folder-123",
+            {
+                "entityType": "dataset",
+                "type": "PHYSICAL_DATASET",
+                "path": ["dataproducts", "dre-unstructured", "orders"],
+                "format": {"type": "Delta"},
+            },
+        )
+
+        assert captured["url"] == "https://api.dremio.cloud/v0/projects/proj-123/catalog/folder-123"
+        assert captured["body"]["entityType"] == "dataset"
+        assert captured["body"]["type"] == "PHYSICAL_DATASET"
+        assert captured["body"]["format"]["type"] == "Delta"
+
 
 class TestEngineURLs:
     def test_engines_list_url(self, client: DremioClient) -> None:

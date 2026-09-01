@@ -17,11 +17,21 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
 
-from drs.commands.folder import create_folder, delete_entity, delete_folder, get_entity, get_folder, grants
+from drs.commands.folder import (
+    create_folder,
+    delete_entity,
+    delete_folder,
+    get_entity,
+    get_folder,
+    grants,
+    promote_folder,
+    promote_from_file,
+)
 from drs.utils import DremioAPIError
 
 
@@ -156,3 +166,100 @@ async def test_grants(mock_client) -> None:
     result = await grants(mock_client, "myspace.table")
     assert result["path"] == "myspace.table"
     assert "accessControlList" in result
+
+
+@pytest.mark.asyncio
+async def test_promote_folder_formats_as_delta(mock_client) -> None:
+    mock_client.get_catalog_by_path = AsyncMock(
+        return_value={
+            "id": "folder-1",
+            "path": ["dataproducts", "dre-unstructured", "sales_orders"],
+            "entityType": "folder",
+        }
+    )
+    mock_client.format_catalog_table = AsyncMock(
+        return_value={
+            "id": "ds-1",
+            "path": ["dataproducts", "dre-unstructured", "sales_orders"],
+            "entityType": "dataset",
+            "type": "PHYSICAL_DATASET",
+            "format": {"type": "Delta"},
+        }
+    )
+
+    result = await promote_folder(mock_client, "dataproducts.dre-unstructured.sales_orders")
+
+    mock_client.get_catalog_by_path.assert_called_once_with(["dataproducts", "dre-unstructured", "sales_orders"])
+    mock_client.format_catalog_table.assert_called_once_with(
+        "folder-1",
+        {
+            "entityType": "dataset",
+            "type": "PHYSICAL_DATASET",
+            "path": ["dataproducts", "dre-unstructured", "sales_orders"],
+            "format": {"type": "Delta"},
+        },
+    )
+    assert result["entityType"] == "dataset"
+
+
+@pytest.mark.asyncio
+async def test_promote_from_file_prefixes_source_and_under(mock_client, tmp_path: Path) -> None:
+    paths_file = tmp_path / "tables.txt"
+    paths_file.write_text("sales/orders\n# comment\n\ninventory/stock\n", encoding="utf-8")
+
+    mock_client.get_catalog_by_path = AsyncMock(
+        side_effect=[
+            {
+                "id": "folder-1",
+                "path": ["dataproducts", "dre-unstructured", "sales", "orders"],
+            },
+            {
+                "id": "folder-2",
+                "path": ["dataproducts", "dre-unstructured", "inventory", "stock"],
+            },
+        ]
+    )
+    mock_client.format_catalog_table = AsyncMock(
+        side_effect=[
+            {
+                "id": "ds-1",
+                "path": ["dataproducts", "dre-unstructured", "sales", "orders"],
+                "entityType": "dataset",
+                "type": "PHYSICAL_DATASET",
+                "format": {"type": "Delta"},
+            },
+            {
+                "id": "ds-2",
+                "path": ["dataproducts", "dre-unstructured", "inventory", "stock"],
+                "entityType": "dataset",
+                "type": "PHYSICAL_DATASET",
+                "format": {"type": "Delta"},
+            },
+        ]
+    )
+
+    result = await promote_from_file(mock_client, paths_file, "dataproducts", under="dre-unstructured")
+
+    assert mock_client.get_catalog_by_path.call_args_list[0].args[0] == [
+        "dataproducts",
+        "dre-unstructured",
+        "sales",
+        "orders",
+    ]
+    assert mock_client.get_catalog_by_path.call_args_list[1].args[0] == [
+        "dataproducts",
+        "dre-unstructured",
+        "inventory",
+        "stock",
+    ]
+    assert result["count"] == 2
+    assert result["results"][0]["path"] == ["dataproducts", "dre-unstructured", "sales", "orders"]
+
+
+@pytest.mark.asyncio
+async def test_promote_from_file_rejects_dotdot_segments(mock_client, tmp_path: Path) -> None:
+    paths_file = tmp_path / "tables.txt"
+    paths_file.write_text("../bad\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not allowed"):
+        await promote_from_file(mock_client, paths_file, "dataproducts", under="dre-unstructured")

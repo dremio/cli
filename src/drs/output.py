@@ -24,6 +24,10 @@ import sys
 from enum import StrEnum
 from typing import Any
 
+import pandas as pd
+from rich.console import Console
+from rich.table import Table
+
 
 class OutputFormat(StrEnum):
     json = "json"
@@ -100,22 +104,20 @@ def _list_table(rows: list) -> str:
         return "(no results)"
     if not isinstance(rows[0], dict):
         return "\n".join(str(r) for r in rows)
+    return _rich_table(rows)
 
-    cols = list(rows[0].keys())
-    widths = {c: len(c) for c in cols}
-    str_rows = []
-    for row in rows:
-        sr = {c: str(row.get(c, "")) for c in cols}
-        for c in cols:
-            widths[c] = max(widths[c], len(sr[c]))
-        str_rows.append(sr)
 
-    header = "  ".join(c.ljust(widths[c]) for c in cols)
-    sep = "  ".join("-" * widths[c] for c in cols)
-    lines = [header, sep]
-    for sr in str_rows:
-        lines.append("  ".join(sr[c].ljust(widths[c]) for c in cols))
-    return "\n".join(lines)
+def _rich_table(rows: list[dict[str, Any]]) -> str:
+    dataframe = pd.DataFrame(rows).fillna("")
+    table = Table(show_header=True, header_style="bold")
+    for column in dataframe.columns:
+        table.add_column(str(column), overflow="fold")
+    for row in dataframe.itertuples(index=False, name=None):
+        table.add_row(*[str(value) for value in row])
+
+    console = Console(record=True, force_terminal=False, width=120)
+    console.print(table)
+    return console.export_text().rstrip()
 
 
 def error(msg: str) -> None:

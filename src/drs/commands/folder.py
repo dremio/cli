@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 import httpx
 import typer
@@ -25,7 +26,14 @@ import typer
 from drs.client import DremioClient
 from drs.commands.query import run_query
 from drs.output import OutputFormat, error, output, warn
-from drs.utils import DremioAPIError, NestedPathUnsupported, handle_api_error, parse_path, quote_path_sql
+from drs.utils import (
+    DremioAPIError,
+    NestedPathUnsupported,
+    handle_api_error,
+    parse_path,
+    quote_path_sql,
+    sanitize_input,
+)
 
 app = typer.Typer(
     help="Manage nested folders and list top-level catalog entities. Use `dremio space` for top-level spaces.",
@@ -111,6 +119,91 @@ async def grants(client: DremioClient, path: str) -> dict:
         "path": path,
         "id": entity.get("id"),
         "accessControlList": acl,
+    }
+
+
+def _split_slash_path(path: str) -> list[str]:
+    """Split a slash-separated relative path into validated path parts."""
+    sanitize_input(path, "path")
+    parts = [part.strip() for part in path.split("/") if part.strip()]
+    if not parts:
+        raise ValueError("Path is empty.")
+    if any(part in {".", ".."} for part in parts):
+        raise ValueError(f"Invalid path '{path}': '.' and '..' path segments are not allowed.")
+    return parts
+
+
+async def promote_path_as_table(client: DremioClient, path_parts: list[str], format_type: str = "Delta") -> dict:
+    """Format a file or folder as a physical dataset using the Catalog API."""
+    try:
+        entity = await client.get_catalog_by_path(path_parts)
+    except httpx.HTTPStatusError as exc:
+        raise handle_api_error(exc) from exc
+
+    body = {
+        "entityType": "dataset",
+        "type": "PHYSICAL_DATASET",
+        # Use the caller-resolved catalog path parts directly. The lookup response
+        # can normalize or collapse file-source segments containing dots, which
+        # breaks the subsequent format request for file/folder sources.
+        "path": path_parts,
+        "format": {"type": format_type},
+    }
+
+    try:
+        return await client.format_catalog_table(entity["id"], body)
+    except httpx.HTTPStatusError as exc:
+        raise handle_api_error(exc) from exc
+
+
+async def promote_folder(client: DremioClient, path: str, format_type: str = "Delta") -> dict:
+    """Format a dot-separated file or folder path as a physical dataset."""
+    return await promote_path_as_table(client, parse_path(path), format_type=format_type)
+
+
+async def promote_from_file(
+    client: DremioClient,
+    paths_file: Path,
+    source: str,
+    under: str | None = None,
+    format_type: str = "Delta",
+) -> dict:
+    """Format multiple slash-separated relative paths from a file as datasets."""
+    source_part = sanitize_input(source.strip(), "source")
+    if not source_part:
+        raise ValueError("Source is empty.")
+
+    base_parts = [source_part]
+    if under:
+        base_parts.extend(_split_slash_path(under))
+
+    results: list[dict] = []
+    for line_no, raw in enumerate(paths_file.read_text(encoding="utf-8").splitlines(), start=1):
+        raw = raw.strip()
+        if not raw or raw.startswith("#"):
+            continue
+
+        rel_parts = _split_slash_path(raw)
+        full_parts = [*base_parts, *rel_parts]
+        result = await promote_path_as_table(client, full_parts, format_type=format_type)
+        results.append(
+            {
+                "line": line_no,
+                "input": raw,
+                "path": result.get("path", full_parts),
+                "id": result.get("id"),
+                "entityType": result.get("entityType"),
+                "type": result.get("type"),
+                "format": result.get("format"),
+            }
+        )
+
+    return {
+        "source": source_part,
+        "under": under,
+        "formatType": format_type,
+        "count": len(results),
+        "results": results,
     }
 
 
@@ -205,3 +298,55 @@ def cli_grants(
     """Show ACL grants on a catalog entity."""
     client = _get_client()
     _run_command(grants(client, path), client, fmt)
+
+
+@app.command("promote")
+def cli_promote(
+    path: str = typer.Argument(
+        None,
+        help="Dot-separated file or folder path to format as a table (e.g., source.folder.table_dir)",
+    ),
+    paths_file: Path | None = typer.Option(
+        None,
+        "--paths-file",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+        help="File containing slash-separated relative paths, one per line",
+    ),
+    source: str | None = typer.Option(
+        None,
+        "--source",
+        help="Source name to prefix to every line from --paths-file",
+    ),
+    under: str | None = typer.Option(
+        None,
+        "--under",
+        help="Optional slash-separated base path under the source for every line from --paths-file",
+    ),
+    format_type: str = typer.Option("Delta", "--format-type", help="Dataset format type to promote as"),
+    fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
+    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated fields to include"),
+) -> None:
+    """Format a file or folder as a table using the Catalog API.
+
+    For batch promotion, pass --paths-file with slash-separated relative paths and
+    prefix them with --source and optional --under.
+    """
+    if bool(path) == bool(paths_file):
+        error("Provide exactly one of PATH or --paths-file.")
+        raise typer.Exit(1)
+
+    if paths_file and not source:
+        error("--source is required when using --paths-file.")
+        raise typer.Exit(1)
+
+    client = _get_client()
+    if paths_file:
+        _run_command(
+            promote_from_file(client, paths_file, source, under=under, format_type=format_type), client, fmt, fields
+        )
+        return
+    _run_command(promote_folder(client, path, format_type=format_type), client, fmt, fields=fields)

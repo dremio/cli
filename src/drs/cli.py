@@ -41,6 +41,7 @@ from drs.commands import (
     reflection,
     role,
     schema,
+    semantic,
     setup,
     space,
     tag,
@@ -62,6 +63,7 @@ app.add_typer(auth.app, name="auth")
 app.add_typer(query.app, name="query")
 app.add_typer(folder.app, name="folder")
 app.add_typer(schema.app, name="schema")
+app.add_typer(semantic.app, name="semantic")
 app.add_typer(wiki.app, name="wiki")
 app.add_typer(tag.app, name="tag")
 app.add_typer(reflection.app, name="reflection")

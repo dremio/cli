@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -134,17 +135,8 @@ def _run_command(coro, client, fmt: OutputFormat = OutputFormat.json, fields: st
 def cli_run(
     sql: str | None = typer.Argument(None, help="SQL query to execute (use '-' to read from stdin)"),
     file: Annotated[
-        Path | None,
-        typer.Option(
-            "--file",
-            exists=True,
-            file_okay=True,
-            dir_okay=False,
-            writable=False,
-            readable=True,
-            allow_dash=True,
-            help="Path to a SQL file to execute (use '-' for stdin)",
-        ),
+        typer.FileText|None,
+        typer.Option(help="Path to a SQL file to execute (use '-' for stdin)"),
     ] = None,
     context: str = typer.Option(None, help="Dot-separated default schema context (e.g., myspace.folder)"),
     fmt: OutputFormat = typer.Option(OutputFormat.json, "--output", "-o", help="Output format"),
@@ -171,9 +163,11 @@ def cli_run(
         if sql is not None:
             error("Cannot specify both a SQL argument and --file.")
             raise typer.Exit(1)
-        sql = file.read_text().strip()
+        sql = file.read().strip()
     elif sql is not None:
         sql = sql.strip()
+        if sql == "-":
+            sql = sys.stdin.read().strip()
 
     if not sql:
         error("SQL query is empty. Provide SQL as an argument, --file path, or pipe via stdin (use '-' for stdin).")

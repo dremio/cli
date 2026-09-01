@@ -50,7 +50,7 @@ def test_pretty_output_table() -> None:
     result = render(data, OutputFormat.pretty)
     assert "id" in result
     assert "alice" in result
-    assert "---" in result or "--" in result
+    assert "bob" in result
 
 
 def test_pretty_output_dict() -> None:

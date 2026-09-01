@@ -127,6 +127,10 @@ class DremioClient:
     def _v1(self, path: str) -> str:
         return f"{self.config.uri}/v1{path}"
 
+    def _v1_project(self, path: str) -> str:
+        """Project-scoped v1 URL: /v1/projects/{pid}/..."""
+        return f"{self.config.uri}/v1/projects/{self.config.project_id}{path}"
+
     # -- HTTP helpers with retry --
 
     async def _request_with_retry(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
@@ -293,6 +297,10 @@ class DremioClient:
         """Update a catalog entity. PUT /catalog/{id}."""
         return await self._put(self._v3(f"/catalog/{entity_id}"), json=body)
 
+    async def format_catalog_table(self, entity_id: str, body: dict) -> dict:
+        """Format a file or folder as a physical dataset. POST /catalog/{id}."""
+        return await self._post(self._v3(f"/catalog/{entity_id}"), json=body)
+
     async def delete_catalog_entity(self, entity_id: str, tag: str | None = None) -> dict:
         """Delete a catalog entity. DELETE /catalog/{id}."""
         params = {"tag": tag} if tag else None
@@ -320,6 +328,95 @@ class DremioClient:
         if version is not None:
             body["version"] = version
         return await self._post(self._v3(f"/catalog/{entity_id}/collaboration/tag"), json=body)
+
+    # -- Semantic layer (v4) --
+
+    async def delete_semantic_layer(self) -> dict:
+        return await self._delete(self._v1_project("/semantic-layer"))
+
+    async def initialize_semantic_layer(self, body: dict) -> dict:
+        return await self._post(self._v1_project("/semantic-layer/initialize"), json=body)
+
+    async def deploy_semantic_layer_entities(self, task_id: str) -> dict:
+        return await self._post(self._v1_project("/semantic-layer/deploy"), json={"taskId": task_id})
+
+    async def abandon_semantic_layer_entities(self, task_id: str) -> dict:
+        return await self._post(self._v1_project("/semantic-layer/abandon"), json={"taskId": task_id})
+
+    async def cancel_semantic_layer_task(self, task_id: str) -> dict:
+        return await self._post(self._v1_project("/semantic-layer/cancel"), json={"taskId": task_id})
+
+    async def list_semantic_layer_tasks(self, task_state: str | None = None) -> dict:
+        params = {"taskState": task_state} if task_state else None
+        return await self._get(self._v1_project("/semantic-layer/tasks"), params=params)
+
+    async def add_semantic_layer_task(self, body: dict) -> dict:
+        return await self._post(self._v1_project("/semantic-layer/tasks"), json=body)
+
+    async def get_semantic_layer_task(self, task_id: str) -> dict:
+        return await self._get(self._v1_project(f"/semantic-layer/tasks/{task_id}"))
+
+    async def list_semantic_layer_entities(
+        self,
+        entity_type: str,
+        task_id: str | None = None,
+        page_token: str | None = None,
+        limit: int | None = None,
+    ) -> dict:
+        params: dict[str, Any] = {"EntityType": entity_type}
+        if task_id:
+            params["taskId"] = task_id
+        if page_token:
+            params["pageToken"] = page_token
+        if limit is not None:
+            params["limit"] = limit
+        return await self._get(self._v1_project("/semantic-layer/entities"), params=params)
+
+    async def add_semantic_layer_entity(self, body: dict, task_id: str | None = None) -> dict:
+        url = self._v1_project("/semantic-layer/entities")
+        if task_id:
+            url = f"{url}?taskId={task_id}"
+        return await self._post(url, json=body)
+
+    async def get_semantic_layer_entity(
+        self,
+        entity_id: str,
+        entity_type: str,
+        task_id: str | None = None,
+        include_relationships: bool = False,
+    ) -> dict:
+        params: dict[str, Any] = {"EntityType": entity_type}
+        if task_id:
+            params["taskId"] = task_id
+        if include_relationships:
+            params["includeRelationships"] = "true"
+        return await self._get(self._v1_project(f"/semantic-layer/entities/{entity_id}"), params=params)
+
+    async def update_semantic_layer_entity(self, entity_id: str, body: dict, task_id: str | None = None) -> dict:
+        url = self._v1_project(f"/semantic-layer/entities/{entity_id}")
+        params = f"?taskId={task_id}" if task_id else ""
+        return await self._put(f"{url}{params}", json=body)
+
+    async def delete_semantic_layer_entity(self, entity_id: str, entity_type: str, task_id: str | None = None) -> dict:
+        params: dict[str, Any] = {"EntityType": entity_type}
+        if task_id:
+            params["taskId"] = task_id
+        return await self._delete(self._v1_project(f"/semantic-layer/entities/{entity_id}"), params=params)
+
+    async def get_semantic_layer_scope(self) -> dict:
+        return await self._get(self._v1_project("/semantic-layer/scope"))
+
+    async def patch_semantic_layer_scope(self, body: dict) -> dict:
+        logger.debug("PATCH %s body=%s", self._v1_project("/semantic-layer/scope"), body)
+        resp = await self._request_with_retry("PATCH", self._v1_project("/semantic-layer/scope"), json=body)
+        logger.debug(
+            "PATCH %s → %d (%d bytes)",
+            self._v1_project("/semantic-layer/scope"),
+            resp.status_code,
+            len(resp.content),
+        )
+        resp.raise_for_status()
+        return resp.json()
 
     # -- Reflections (v3) --
 

@@ -154,6 +154,57 @@ COMMAND_SCHEMAS: dict[str, dict] = {
             {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
         ],
     },
+    "folder.promote": {
+        "group": "folder",
+        "command": "promote",
+        "description": "Format a file or folder as a physical dataset using the Catalog API. Supports either a single dot-separated path or a file of slash-separated relative paths prefixed by --source and optional --under.",
+        "mechanism": "REST",
+        "mutating": True,
+        "endpoints": [
+            "GET /v0/projects/{pid}/catalog/by-path/{path}",
+            "POST /v0/projects/{pid}/catalog/{id}",
+        ],
+        "parameters": [
+            {
+                "name": "path",
+                "type": "string",
+                "required": False,
+                "positional": True,
+                "description": "Dot-separated file or folder path to format as a table",
+            },
+            {
+                "name": "paths_file",
+                "type": "path",
+                "required": False,
+                "flag": "--paths-file",
+                "description": "File with slash-separated relative paths, one per line",
+            },
+            {
+                "name": "source",
+                "type": "string",
+                "required": False,
+                "flag": "--source",
+                "description": "Source name to prefix to every line from --paths-file",
+            },
+            {
+                "name": "under",
+                "type": "string",
+                "required": False,
+                "flag": "--under",
+                "description": "Optional slash-separated base path under the source for every line from --paths-file",
+            },
+            {
+                "name": "format_type",
+                "type": "string",
+                "required": False,
+                "default": "Delta",
+                "flag": "--format-type",
+                "description": "Dataset format type, for example Delta or Parquet",
+            },
+            {"name": "output", "type": "enum", "required": False, "default": "json", "enum": ["json", "csv", "pretty"]},
+            {"name": "fields", "type": "string", "required": False},
+        ],
+    },
     # -- Space --
     "space.list": {
         "group": "space",
