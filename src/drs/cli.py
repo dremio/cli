@@ -171,7 +171,10 @@ def get_client() -> DremioClient:
 
 @app.command("search")
 def search_command(
-    term: str = typer.Argument(help="Search term (matches table names, view names, source names)"),
+    terms: list[str] = typer.Argument(
+        help="One or more search terms (matches table names, view names, source names). "
+        "Multiple terms are searched as alternatives."
+    ),
     filter_: str | None = typer.Option(None, "--filter", help="CEL filter expression to refine search results"),
     max_results: int | None = typer.Option(None, "--max-results", min=1, help="Maximum results to return per page"),
     next_page_token: str | None = typer.Option(
@@ -194,7 +197,7 @@ def search_command(
                 }
                 if next_page_token is not None:
                     search_kwargs["next_page_token"] = next_page_token
-                return await client.search(term, **search_kwargs)
+                return await client.search(terms, **search_kwargs)
             except httpx.HTTPStatusError as exc:
                 raise handle_api_error(exc) from exc
         finally:

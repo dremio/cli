@@ -116,10 +116,10 @@ class TestSearch:
 
         client._client = httpx.AsyncClient(transport=httpx.MockTransport(_capture))
 
-        await client.search("revenue", filter_='category in ["JOB"]', max_results=20)
+        await client.search(["revenue"], filter_='category in ["JOB"]', max_results=20)
 
         assert captured["body"] == {
-            "query": "revenue",
+            "queries": ["revenue"],
             "filter": 'category in ["JOB"]',
             "maxResults": 20,
         }
@@ -136,12 +136,39 @@ class TestSearch:
 
         client._client = httpx.AsyncClient(transport=httpx.MockTransport(_capture))
 
-        await client.search("revenue", next_page_token="token-123")
+        await client.search(["revenue"], next_page_token="token-123")
 
         assert captured["body"] == {
-            "query": "revenue",
+            "queries": ["revenue"],
             "pageToken": "token-123",
         }
+
+    @pytest.mark.parametrize(
+        ("queries", "expected_body"),
+        [
+            (["revenue"], {"queries": ["revenue"]}),
+            (["revenue", "sales"], {"queries": ["revenue", "sales"]}),
+            (["  ", "sales"], {"queries": ["  ", "sales"]}),
+            ([""], {"queries": [""]}),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_search_sends_queries_list_and_legacy_query(
+        self, client: DremioClient, queries: list[str], expected_body: dict
+    ) -> None:
+        captured: dict = {}
+
+        async def _capture(request: httpx.Request) -> httpx.Response:
+            import json
+
+            captured["body"] = json.loads(request.content)
+            return httpx.Response(200, json={"results": []})
+
+        client._client = httpx.AsyncClient(transport=httpx.MockTransport(_capture))
+
+        await client.search(queries)
+
+        assert captured["body"] == expected_body
 
 
 class TestSQLBreadcrumb:

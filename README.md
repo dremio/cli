@@ -140,6 +140,9 @@ dremio query run "SELECT * FROM myspace.orders LIMIT 5" --output pretty
 # Search the catalog for anything matching "revenue"
 dremio search "revenue"
 
+# Search for anything matching either term
+dremio search "revenue" "sales"
+
 # Search only jobs and limit the first page size
 dremio search "revenue" --filter 'category in ["JOB"]' --max-results 20
 

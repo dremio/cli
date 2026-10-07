@@ -271,12 +271,12 @@ class DremioClient:
 
     async def search(
         self,
-        query: str,
+        queries: list[str],
         filter_: str | None = None,
         max_results: int | None = None,
         next_page_token: str | None = None,
     ) -> dict:
-        body: dict[str, Any] = {"query": query}
+        body: dict[str, Any] = {"queries": queries}
         if filter_:
             body["filter"] = filter_
         if max_results is not None:
