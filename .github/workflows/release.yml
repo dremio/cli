@@ -37,10 +37,16 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
 
   update-plugin-version:
+    # main is protected by a ruleset (PR required, status checks, review), so the
+    # version bump is proposed as a pull request instead of pushed directly.
     needs: publish
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -50,10 +56,25 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           jq --arg v "$VERSION" '.version = $v' plugins/dremio/.claude-plugin/plugin.json > tmp.json
           mv tmp.json plugins/dremio/.claude-plugin/plugin.json
-      - name: Commit and push
+      - name: Open pull request
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if git diff --quiet; then
+            echo "plugin.json already at $VERSION, nothing to do"
+            exit 0
+          fi
+          BRANCH="release/plugin-version-$VERSION"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add plugins/dremio/.claude-plugin/plugin.json
-          git diff --cached --quiet || git commit -m "chore: bump plugin version to ${GITHUB_REF_NAME#v}"
-          git push
+          git commit -m "chore: bump plugin version to $VERSION"
+          git push --force origin "$BRANCH"
+          if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --base main --head "$BRANCH" \
+              --title "chore: bump plugin version to $VERSION" \
+              --body "Automated plugin.json version bump for release $GITHUB_REF_NAME."
+          fi
+          # Events raised with GITHUB_TOKEN do not trigger pull_request workflows,
+          # so dispatch CI on the branch to produce the required status checks.
+          gh workflow run ci.yml --ref "$BRANCH"
