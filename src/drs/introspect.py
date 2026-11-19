@@ -211,7 +211,13 @@ COMMAND_SCHEMAS: dict[str, dict] = {
         "mechanism": "REST",
         "endpoints": ["POST /v0/projects/{pid}/search"],
         "parameters": [
-            {"name": "term", "type": "string", "required": True, "positional": True, "description": "Search term"},
+            {
+                "name": "terms",
+                "type": "string",
+                "required": True,
+                "positional": True,
+                "description": "One or more search terms, searched as alternatives",
+            },
             {
                 "name": "filter",
                 "type": "string",
