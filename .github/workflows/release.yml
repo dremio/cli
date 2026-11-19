@@ -37,14 +37,25 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
 
   update-plugin-version:
+    # main is protected by the "Lock main" ruleset; dremio-release-bot is its
+    # only bypass actor. Its key lives in the pypi environment, which only v*
+    # tags can deploy to, so no other workflow or branch can read it.
     needs: publish
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    environment: pypi
+    permissions: {}
     steps:
+      - uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        id: app-token
+        with:
+          client-id: Iv23liSGL4udxvGMF91W # dremio-release-bot
+          private-key: ${{ secrets.DREMIO_RELEASE_BOT_PRIVATE_KEY }}
+          repositories: cli
+          permission-contents: write
       - uses: actions/checkout@v6
         with:
           ref: main
+          token: ${{ steps.app-token.outputs.token }}
       - name: Update plugin.json version
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -52,8 +63,8 @@ jobs:
           mv tmp.json plugins/dremio/.claude-plugin/plugin.json
       - name: Commit and push
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "dremio-release-bot[bot]"
+          git config user.email "223908024+dremio-release-bot[bot]@users.noreply.github.com"
           git add plugins/dremio/.claude-plugin/plugin.json
           git diff --cached --quiet || git commit -m "chore: bump plugin version to ${GITHUB_REF_NAME#v}"
           git push
