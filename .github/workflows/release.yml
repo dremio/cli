@@ -37,44 +37,34 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
 
   update-plugin-version:
-    # main is protected by a ruleset (PR required, status checks, review), so the
-    # version bump is proposed as a pull request instead of pushed directly.
+    # main is protected by the "Lock main" ruleset; dremio-release-bot is its
+    # only bypass actor. Its key lives in the pypi environment, which only v*
+    # tags can deploy to, so no other workflow or branch can read it.
     needs: publish
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      actions: write
-    env:
-      GH_TOKEN: ${{ github.token }}
+    environment: pypi
+    permissions: {}
     steps:
+      - uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        id: app-token
+        with:
+          client-id: Iv23liSGL4udxvGMF91W # dremio-release-bot
+          private-key: ${{ secrets.DREMIO_RELEASE_BOT_PRIVATE_KEY }}
+          repositories: cli
+          permission-contents: write
       - uses: actions/checkout@v6
         with:
           ref: main
+          token: ${{ steps.app-token.outputs.token }}
       - name: Update plugin.json version
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           jq --arg v "$VERSION" '.version = $v' plugins/dremio/.claude-plugin/plugin.json > tmp.json
           mv tmp.json plugins/dremio/.claude-plugin/plugin.json
-      - name: Open pull request
+      - name: Commit and push
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          if git diff --quiet; then
-            echo "plugin.json already at $VERSION, nothing to do"
-            exit 0
-          fi
-          BRANCH="release/plugin-version-$VERSION"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
+          git config user.name "dremio-release-bot[bot]"
+          git config user.email "223908024+dremio-release-bot[bot]@users.noreply.github.com"
           git add plugins/dremio/.claude-plugin/plugin.json
-          git commit -m "chore: bump plugin version to $VERSION"
-          git push --force origin "$BRANCH"
-          if [ -z "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
-            gh pr create --base main --head "$BRANCH" \
-              --title "chore: bump plugin version to $VERSION" \
-              --body "Automated plugin.json version bump for release $GITHUB_REF_NAME."
-          fi
-          # Events raised with GITHUB_TOKEN do not trigger pull_request workflows,
-          # so dispatch CI on the branch to produce the required status checks.
-          gh workflow run ci.yml --ref "$BRANCH"
+          git diff --cached --quiet || git commit -m "chore: bump plugin version to ${GITHUB_REF_NAME#v}"
+          git push
